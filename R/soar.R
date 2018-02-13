@@ -33,11 +33,38 @@ server <- function(input, output) {
 
         output$world_map <- renderPlot({
             data <- get_inat_obs(query = input$species_name)
-            data_map = inat_map(data, "world", plot = FALSE)
+            data_map <- inat_map(data, "world", plot = FALSE)
             data_map + borders("state") + theme_bw()
         })
     })
 }
 
 # Create a Shiny app object
-shinyApp(ui = ui, server = server)
+#shinyApp(ui = ui, server = server)
+
+#' SOAR package Graphic User Interface
+#'
+#' User interface of the soar package.
+#'
+#' @param port char. The TCP port that the application should listen on (see
+#'   \code{\link[shiny]{runApp}} for more details).
+#' @param host char. The IPv4 address that the application should listen on (see
+#'   \code{\link[shiny]{runApp}} for more details).
+#' @param working.directory char. Directory in which the application will run.
+#'
+#' @return Open a window with a shiny app to use the soar package with an
+#'   user-friendly interface.
+#'
+#' @examples
+#' \dontrun{
+#' gui()
+#' }
+#'
+#' @export
+gui <- function(port = getOption("shiny.port"),
+                host = getOption("shiny.host", "127.0.0.1")) {
+
+  shiny::runApp(shinyApp(ui = ui, server = server),
+                display.mode = "normal", port = port, host = host)
+  rm(ui, server, envir = .GlobalEnv)
+}
