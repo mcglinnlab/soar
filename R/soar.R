@@ -1,6 +1,6 @@
 library(shiny)
+library(ggplot2)
 library(rinat)
-library(maps)
 
 # create user interface
 ui <- fluidPage(
@@ -33,20 +33,9 @@ server <- function(input, output) {
 
         output$world_map <- renderPlot({
             data <- get_inat_obs(query = input$species_name)
-            map('world')
-            points(latitude ~ longitude, data = data,
-                   col = 'red', pch = 19, cex = 0.25)
-            
-            #map('state')
-            #points(latitude ~ longitude, data = data,
-            #      col = 'red', pch = 19, cex = 0.25)
+            data_map = inat_map(data, "world", plot = FALSE)
+            data_map + borders("state") + theme_bw()
         })
-    
-    #output$state_map <- renderPlot({
-    #    map('state')
-    #    points(latitude ~ longitude, data = output$data,
-    #           col = 'red', pch = 19, cex = 0.25)
-    #})
     })
 }
 
