@@ -6,7 +6,7 @@ library(rinat)
 ui <- fluidPage(
   
     # Application title
-    titlePanel("SOAR: species occupancy aggregator"),
+    titlePanel("SOAR: species occupancy aggregator in R"),
   
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
