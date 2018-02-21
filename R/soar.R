@@ -12,6 +12,10 @@ ui <- fluidPage(
     sidebarLayout(
        sidebarPanel(
           textInput("species_name", "Species name", "Bald eagle"),
+          textInput("Lat_low", "Latitude lower range", "90"),
+          textInput("Lat_high", "Latitude upper range", "-90"),
+          textInput("Long_low", "Longitude lower range", "180"),
+          textInput("Long_high", "Longitude upper range", "-180"),
           actionButton("do", "Submit")
        ),
     
@@ -30,10 +34,13 @@ server <- function(input, output) {
     observeEvent(input$do, {
 
         output$species_name <- renderText({input$species_name})
+        
+        bounds <- c(input$Lat_high, input$Long_high, input$Lat_low, input$Long_low)
 
+                    
         output$world_map <- renderPlot({
-            data <- get_inat_obs(query = input$species_name)
-            data_map <- inat_map(data, "world", plot = FALSE)
+            data <- get_inat_obs(query = input$species_name, bounds = bounds)
+            data_map <- inat_map(data, map = "world", plot = FALSE)
             data_map + borders("state") + theme_bw()
         })
     })
@@ -68,3 +75,4 @@ gui <- function(port = getOption("shiny.port"),
                 display.mode = "normal", port = port, host = host)
   rm(ui, server, envir = .GlobalEnv)
 }
+
