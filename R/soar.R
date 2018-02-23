@@ -12,10 +12,14 @@ ui <- fluidPage(
     sidebarLayout(
        sidebarPanel(
           textInput("species_name", "Species name", "Bald eagle"),
-          textInput("Lat_low", "Latitude lower range", "90"),
-          textInput("Lat_high", "Latitude upper range", "-90"),
-          textInput("Long_low", "Longitude lower range", "180"),
-          textInput("Long_high", "Longitude upper range", "-180"),
+          checkboxInput("checkbox", label = "Input Latitude and Longitude bounds", value = FALSE),
+          conditionalPanel (
+            condition = "input.checkbox == true",
+            textInput("Lat_low", "Latitude lower range", "90"),
+            textInput("Lat_high", "Latitude upper range", "-90"),
+            textInput("Long_low", "Longitude lower range", "180"),
+            textInput("Long_high", "Longitude upper range", "-180")
+          ),
           actionButton("do", "Submit")
        ),
     
@@ -35,8 +39,9 @@ server <- function(input, output) {
 
         output$species_name <- renderText({input$species_name})
         
+        if (input$checkbox == TRUE) {
         bounds <- c(input$Lat_high, input$Long_high, input$Lat_low, input$Long_low)
-
+        } else {bounds <- NULL}
                     
         output$world_map <- renderPlot({
             data <- get_inat_obs(query = input$species_name, bounds = bounds)
