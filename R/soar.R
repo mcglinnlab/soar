@@ -25,8 +25,13 @@ ui <- fluidPage(
     
        # Show a plot of the generated distribution
        mainPanel(
-           h3(textOutput("species_name")),
-           plotOutput("world_map")
+         h3(textOutput("species_name")),
+         tabsetPanel(
+           tabPanel("Map", plotOutput("world_map")),
+           tabPanel("Raw Data", dataTableOutput("data")),
+           tabPanel("SOAR Derived Fields")
+         )
+           #plotOutput("world_map")
            #plotOutput("state_map")
            #dataTableOutput("data")
        )
@@ -42,11 +47,17 @@ server <- function(input, output) {
         if (input$checkbox == TRUE) {
         bounds <- c(input$Lat_high, input$Long_high, input$Lat_low, input$Long_low)
         } else {bounds <- NULL}
+        
+        INATdata <- get_inat_obs(query = input$species_name, bounds = bounds)
+        output$data <- renderTable (expr = INATdata)
                     
         output$world_map <- renderPlot({
             data <- get_inat_obs(query = input$species_name, bounds = bounds)
+            #data_map <- map(database ="world", xlim=c(input$Long_high, input$Long_low), ylim=c(input$Lat_high, input$Lat_low))
+            #points(data)
             data_map <- inat_map(data, map = "world", plot = FALSE)
             data_map + borders("state") + theme_bw()
+           # data_map + xlim=c(input$Long_high, input$Long_low) + ylim=c(input$Lat_high, input$Lat_low)
         })
     })
 }
