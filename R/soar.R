@@ -1,6 +1,7 @@
 library(shiny)
 library(ggplot2)
 library(rinat)
+library(DT)
 
 # create user interface
 ui <- fluidPage(
@@ -28,7 +29,7 @@ ui <- fluidPage(
          h3(textOutput("species_name")),
          tabsetPanel(
            tabPanel("Map", plotOutput("world_map")),
-           tabPanel("Raw Data", tableOutput("raw_data")),
+           tabPanel("Raw Data", DT::dataTableOutput("raw_data")),
            tabPanel("SOAR Derived Fields")
          )
            #plotOutput("world_map")
@@ -48,12 +49,12 @@ server <- function(input, output) {
         bounds <- c(input$Lat_high, input$Long_high, input$Lat_low, input$Long_low)
         } else {bounds <- NULL}
         
-        INATdata <- get_inat_obs(query = input$species_name, bounds = bounds)
-        fileData <- write.csv(INATdata, file = "INATdata.csv", row.names = FALSE)
-        output$raw_data <- renderTable({expr = fileData})
+        INATdata <- get_inat_obs(taxon_name = input$species_name, bounds = bounds)
+        #fileData <- write.csv(INATdata, file = "INATdata.csv", row.names = FALSE)
+        output$raw_data <- DT::renderDataTable({expr = INATdata})
                     
         output$world_map <- renderPlot({
-            data <- get_inat_obs(query = input$species_name, bounds = bounds)
+            data <- get_inat_obs(taxon_name = input$species_name, bounds = bounds)
             #data_map <- map(database ="world", xlim=c(input$Long_high, input$Long_low), ylim=c(input$Lat_high, input$Lat_low))
             #points(data)
             data_map <- inat_map(data, map = "world", plot = FALSE)
