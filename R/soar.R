@@ -28,7 +28,7 @@ ui <- fluidPage(
          h3(textOutput("species_name")),
          tabsetPanel(
            tabPanel("Map", plotOutput("world_map")),
-           tabPanel("Raw Data", dataTableOutput("data")),
+           tabPanel("Raw Data", tableOutput("raw_data")),
            tabPanel("SOAR Derived Fields")
          )
            #plotOutput("world_map")
@@ -49,7 +49,8 @@ server <- function(input, output) {
         } else {bounds <- NULL}
         
         INATdata <- get_inat_obs(query = input$species_name, bounds = bounds)
-        output$data <- renderTable (expr = INATdata)
+        fileData <- write.csv(INATdata, file = "INATdata.csv", row.names = FALSE)
+        output$raw_data <- renderTable({expr = fileData})
                     
         output$world_map <- renderPlot({
             data <- get_inat_obs(query = input$species_name, bounds = bounds)
