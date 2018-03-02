@@ -50,7 +50,6 @@ server <- function(input, output) {
         } else {bounds <- NULL}
         
         INATdata <- get_inat_obs(taxon_name = input$species_name, bounds = bounds)
-        #fileData <- write.csv(INATdata, file = "INATdata.csv", row.names = FALSE)
         output$raw_data <- DT::renderDataTable({expr = INATdata})
                     
         output$world_map <- renderPlot({
