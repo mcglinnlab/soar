@@ -43,14 +43,15 @@ server <- function(input, output) {
   # this conditional is causing problems with the submit button
   # not sure why right now
   #    if (input$checkbox == TRUE) {
-  #        bounds <- c(input$Lat_high, input$Long_high,
-  #                    input$Lat_low, input$Long_low)
+  #       bounds <- c(input$Lat_high, input$Long_high,input$Lat_low, input$Long_low)
   #    } else bounds <- NULL
   
   inat_data <- eventReactive(input$do, {
-    
+    if (input$checkbox == TRUE) {
+             bounds <- c(input$Lat_high, input$Long_high,input$Lat_low, input$Long_low)
+          } else bounds <- NULL
     #To Do: provide user option for maxresults argument
-    inat_result <- get_inat_obs(taxon_name = input$species_name)
+    inat_result <- get_inat_obs(taxon_name = input$species_name, bounds = bounds)
     coords_na <- apply(inat_result[ , c('longitude', 'latitude')], 1,
                        function(x) any(is.na(x)))
     inat_result[!coords_na, ]
