@@ -6,7 +6,8 @@ Description: What the package does (one paragraph).
 Depends: R (>= 3.4.2),
          shiny,
          ggplot2,
-         rinat
+         rinat,
+         leaflet
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
