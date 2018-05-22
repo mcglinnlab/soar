@@ -40,11 +40,6 @@ ui <- fluidPage(
 # create server which is the logic of the app
 server <- function(input, output) {
   
-  # this conditional is causing problems with the submit button
-  # not sure why right now
-  #    if (input$checkbox == TRUE) {
-  #       bounds <- c(input$Lat_high, input$Long_high,input$Lat_low, input$Long_low)
-  #    } else bounds <- NULL
   
   inat_data <- eventReactive(input$do, {
     if (input$checkbox == TRUE) {
