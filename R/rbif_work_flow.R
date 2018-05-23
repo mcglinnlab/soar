@@ -3,8 +3,8 @@ sp_key = name_suggest(q = 'Caretta caretta', rank = 'species')$key[1]
 
 # preforms the query
 res = occ_download(paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-             user = 'danmcglinn', pwd = 'moreplants1', 
-             email = 'danmcglinn@gmail.com')
+             user = 'XXXX', pwd = 'XXXX', 
+             email = 'XXXX')
 
 # checks on if complete
 occ_download_meta(res)
