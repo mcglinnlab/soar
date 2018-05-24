@@ -66,10 +66,10 @@ ui <- dashboardPage(
 server <- function(input, output) {
   
   gbif_data <- eventReactive(input$do, {
+    #filter by name
     sp_key <- name_suggest(q =input$species_name, rank = input$rank)
     #filter by country
     if (input$politicalcheckbox){ country <- input$political_boundary}
-    else {country <- NULL}
     #filter by date
     if (input$datecheckbox){
       toM <- substr(input$to_date, 1,2)
@@ -77,10 +77,6 @@ server <- function(input, output) {
       toY <- substr(input$to_date, 4, 7)
       fromY <- substr(input$from_date, 4, 7)
     }
-    else{toM <- NULL 
-    fromM<- NULL
-    toY <- NULL
-    fromY <- NULL}
     #filter by lat/long
     if (input$latLongcheckbox){
       latLow <- input$Lat_low
@@ -88,19 +84,71 @@ server <- function(input, output) {
       longLow <- input$Long_low
       longHigh <- input$Long_high
     }
-    else{
-      latLow <- NULL
-      latHigh <- NULL
-      longLow <- NULL
-      longHigh <- NULL
+#empty fields cannot be set to NULL, this sees what data is added and runs the correct
+#request depending on what fields are full. It's really big
+    if (input$latLongcheckbox){
+      if (input$datecheckbox & input$politicalcheckbox){
+        res = occ_download(paste("decimalLatitude >=", latLow), paste("decimalLatitude <=", latHigh),
+                           paste("decimalLongitude >=", longLow), paste("decimalLongitude <=", longHigh),
+                           paste("year >=", fromY), paste("year <=", toY), paste("month >=", fromM),
+                           paste("month <=", toM), paste("country =", country), 
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
+      }
+      else if (input$datecheckbox){
+        res = occ_download(paste("decimalLatitude >=", latLow), paste("decimalLatitude <=", latHigh),
+                           paste("decimalLongitude >=", longLow), paste("decimalLongitude <=", longHigh),
+                           paste("year >=", fromY), paste("year <=", toY), paste("month >=", fromM),
+                           paste("month <=", toM), 
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
+      }
+      else if (input$politicalcheckbox){
+        res = occ_download(paste("decimalLatitude >=", latLow), paste("decimalLatitude <=", latHigh),
+                           paste("decimalLongitude >=", longLow), paste("decimalLongitude <=", longHigh),
+                           paste("country =", country), 
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
+      }
+      else{
+        res = occ_download(paste("decimalLatitude >=", latLow), paste("decimalLatitude <=", latHigh),
+                           paste("decimalLongitude >=", longLow), paste("decimalLongitude <=", longHigh),
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
+      }
     }
-    res = occ_download(paste("decimalLatitude >=", latLow), paste("decimalLatitude <=", latHigh),
-                       paste("decimalLongitude >=", longlow), paste("decimalLongitude <=", longHigh),
-                       paste("year >=", fromY), paste("year <=", toY), paste("month >=", fromM),
-                       paste("month <=", toM), paste("country =", country), 
-                       paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                       user = input$gbif_username, pwd = input$gbif_pass, 
-                       email = input$gbif_email)
+    else if (input$datecheckbox){
+      if (input$politicalcheckbox){
+        res = occ_download(paste("year >=", fromY), paste("year <=", toY), paste("month >=", fromM),
+                           paste("month <=", toM), paste("country =", country), 
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
+      }
+      else{
+        res = occ_download(paste("year >=", fromY), paste("year <=", toY), paste("month >=", fromM),
+                           paste("month <=", toM), 
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
+      }
+    }
+    else if (input$politicalcheckbox){
+      res = occ_download(paste("country =", country), 
+                         paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                         user = input$gbif_username, pwd = input$gbif_pass, 
+                         email = input$gbif_email)
+    }
+    else{
+      res = occ_download(paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                         user = input$gbif_username, pwd = input$gbif_pass, 
+                         email = input$gbif_email)
+    }
+    
 #loops so that it checks every 30 seconds to see if meta$status is "SUCCEEDED" or "KILLED"
     continue <- TRUE
     while(continue){
