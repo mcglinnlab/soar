@@ -67,7 +67,7 @@ server <- function(input, output) {
   
   gbif_data <- eventReactive(input$do, {
     #filter by name
-    sp_key <- name_suggest(q =input$species_name, rank = input$rank)
+    sp_key <- name_suggest(q =input$species_name, rank = input$rank)$key[1]
     #filter by country
     if (input$politicalcheckbox){ country <- input$political_boundary}
     #filter by date
@@ -160,26 +160,13 @@ server <- function(input, output) {
        }
 #fix this to actually handle the case      
       if (meta$status == "KILLED"){
-        "An error has occured with your request"
         continue <- FALSE
+        dat <- "An error has occured with your request"
       }
       #30 second delay --  Extend?
       Sys.sleep(30)
     }
       
-  })
-  
-#NEEDS TO BE ERASED AND PHASED OUT  
-  inat_data <- eventReactive(input$do, {
-    if (input$latLongcheckbox == TRUE) {
-      bounds <- c(input$Lat_high, input$Long_high,input$Lat_low, input$Long_low)
-    } else bounds <- NULL
-    
-    #To Do: provide user option for maxresults argument
-    inat_result <- get_inat_obs(taxon_name = input$species_name, bounds = bounds)
-    coords_na <- apply(inat_result[ , c('longitude', 'latitude')], 1,
-                       function(x) any(is.na(x)))
-    inat_result[!coords_na, ]
   })
   
 #!!!!!!!!!!!!!!!!!!!!!!-  Has been changed to include gbif_data rather than inat_data    
@@ -188,23 +175,22 @@ server <- function(input, output) {
   
   #fileData <- write.csv(gbif_data, file = "SOARdata.csv", row.names = FALSE)
   
-  pal <- colorFactor(palette = c("red", "orange", "navy"),
-                     domain = c("casual", "needs_id", "research"))
-  
   output$world_map <- renderLeaflet({
 #!!!!!!!!!!!!!!!!!!!!!!-  Has been changed to include gbif_data rather than inat_data    
     leaflet(gbif_data()) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
+      # I think there is an error here: "Error in UseMethod: no applicable method for 'metaData'
+      #applied to an object of class "NULL" "
       addCircleMarkers(lng = ~ longitude, lat = ~latitude ,
-                       radius = ~ifelse(quality_grade == "research", 6, 3),
-                       color = ~pal(quality_grade),
+                       radius = 3,  #~ifelse(quality_grade == "research", 6, 3),
+                       color = 'red',  #~pal(quality_grade),
                        stroke = FALSE, fillOpacity = 0.5
-      ) %>%
+      )# %>%
 #Remove This, there are no longer 'grades' to the observation
-      addLegend("bottomright", pal = pal, values = ~quality_grade,
-                labels = c('casual', 'needs id', 'research'),
-                title = "The quality of the records"
-      )
+      #addLegend("bottomright", pal = pal, values = ~quality_grade,
+      #          labels = c('casual', 'needs id', 'research'),
+      #          title = "The quality of the records"
+      #)
   })
 }
 
