@@ -37,7 +37,7 @@ ui <- dashboardPage(
     checkboxInput("politicalcheckbox", label = "Input Geographical boundaries by country"),
     conditionalPanel(
       condition ="input.politicalcheckbox == true",
-      textInput("political_boundary", "Country Name", "US")
+      textInput("political_boundary", "Country Name", "Country Code")
       ),
    
      #input date bounding information for gbif
@@ -157,6 +157,7 @@ server <- function(input, output) {
         continue <- FALSE 
         dat <- occ_download_get(res[1], overwrite = TRUE) %>%
           occ_download_import()
+#UNZIP THE DATA HERE
        }
 #fix this to actually handle the case      
       if (meta$status == "KILLED"){
@@ -169,7 +170,8 @@ server <- function(input, output) {
       
   })
   
-#!!!!!!!!!!!!!!!!!!!!!!-  Has been changed to include gbif_data rather than inat_data    
+#!!!!!!!!!!!!!!!!!!!!!!-  Has been changed to include gbif_data rather than inat_data
+#Error in: "Unauthorized (HTTP 401)"
   output$raw_data <- DT::renderDataTable(expr = gbif_data())
   
   
@@ -181,7 +183,8 @@ server <- function(input, output) {
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       # I think there is an error here: "Error in UseMethod: no applicable method for 'metaData'
       #applied to an object of class "NULL" "
-      addCircleMarkers(lng = ~ longitude, lat = ~latitude ,
+#!!!!!!!!!!I changed "longitude" to decimalLongitude and "latitude" to decimalLatitude
+      addCircleMarkers(lng = ~ decimalLongitude, lat = ~decimalLatitude ,
                        radius = 3,  #~ifelse(quality_grade == "research", 6, 3),
                        color = 'red',  #~pal(quality_grade),
                        stroke = FALSE, fillOpacity = 0.5
