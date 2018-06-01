@@ -150,18 +150,18 @@ server <- function(input, output) {
     }
     
 #loops so that it checks every 30 seconds to see if meta$status is "SUCCEEDED" or "KILLED"
-    continue <- TRUE
+    continue = TRUE
     while(continue){
-      meta <- occ_download_meta(res)
+      meta = occ_download_meta(res)
        if (meta$status == "SUCCEEDED"){
-        continue <- FALSE 
+        continue = FALSE
         dat <- occ_download_get(res[1], overwrite = TRUE) %>%
           occ_download_import()
-#UNZIP THE DATA HERE
+        return (dat)
        }
 #fix this to actually handle the case      
       if (meta$status == "KILLED"){
-        continue <- FALSE
+        continue = FALSE
         dat <- "An error has occured with your request"
       }
       #30 second delay --  Extend?
@@ -170,7 +170,7 @@ server <- function(input, output) {
       
   })
   
-#!!!!!!!!!!!!!!!!!!!!!!-  Has been changed to include gbif_data rather than inat_data
+#Has been changed to include gbif_data rather than inat_data
 #Error in: "Unauthorized (HTTP 401)"
   output$raw_data <- DT::renderDataTable(expr = gbif_data())
   
@@ -178,13 +178,14 @@ server <- function(input, output) {
   #fileData <- write.csv(gbif_data, file = "SOARdata.csv", row.names = FALSE)
   
   output$world_map <- renderLeaflet({
-#!!!!!!!!!!!!!!!!!!!!!!-  Has been changed to include gbif_data rather than inat_data    
+#Has been changed to include gbif_data rather than inat_data    
     leaflet(gbif_data()) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       # I think there is an error here: "Error in UseMethod: no applicable method for 'metaData'
       #applied to an object of class "NULL" "
-#!!!!!!!!!!I changed "longitude" to decimalLongitude and "latitude" to decimalLatitude
-      addCircleMarkers(lng = ~ decimalLongitude, lat = ~decimalLatitude ,
+      # I think it is trying to search the meta variable instead of the dat variable
+#I changed "longitude" to decimalLongitude and "latitude" to decimalLatitude
+      addCircleMarkers(lng = ~decimalLongitude, lat = ~decimalLatitude ,
                        radius = 3,  #~ifelse(quality_grade == "research", 6, 3),
                        color = 'red',  #~pal(quality_grade),
                        stroke = FALSE, fillOpacity = 0.5
