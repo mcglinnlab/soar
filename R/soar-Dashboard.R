@@ -171,7 +171,7 @@ server <- function(input, output) {
   })
   
 #Has been changed to include gbif_data rather than inat_data
-#Error in: "Unauthorized (HTTP 401)"
+#Whole graph cannot be viewed at once right now, too many columns, how to fix?
   output$raw_data <- DT::renderDataTable(expr = gbif_data())
   
   
@@ -181,10 +181,7 @@ server <- function(input, output) {
 #Has been changed to include gbif_data rather than inat_data    
     leaflet(gbif_data()) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
-      # I think there is an error here: "Error in UseMethod: no applicable method for 'metaData'
-      #applied to an object of class "NULL" "
-      # I think it is trying to search the meta variable instead of the dat variable
-#I changed "longitude" to decimalLongitude and "latitude" to decimalLatitude
+      
       addCircleMarkers(lng = ~decimalLongitude, lat = ~decimalLatitude ,
                        radius = 3,  #~ifelse(quality_grade == "research", 6, 3),
                        color = 'red',  #~pal(quality_grade),
