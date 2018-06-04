@@ -14,7 +14,7 @@ ui <- dashboardPage(
   #sidebar with input fields
   dashboardSidebar(
     #get species name
-    textInput("species_name", "Species name", "Bald eagle"),
+    textInput("species_name", "Species name", "Caretta caretta"),
     textInput("rank", "Taxonomic rank", "species"),
     
     #get login information
@@ -27,10 +27,10 @@ ui <- dashboardPage(
                   value = FALSE),
     conditionalPanel (
       condition = "input.latLongcheckbox == true",
-      textInput("Lat_low", "Latitude lower range", "90"),
-      textInput("Lat_high", "Latitude upper range", "-90"),
-      textInput("Long_low", "Longitude lower range", "180"),
-      textInput("Long_high", "Longitude upper range", "-180")
+      textInput("Lat_low", "Latitude lower range", "-90"),
+      textInput("Lat_high", "Latitude upper range", "90"),
+      textInput("Long_low", "Longitude lower range", "-180"),
+      textInput("Long_high", "Longitude upper range", "180")
     ),
     
     #input bounding box with political boundaries
@@ -87,6 +87,7 @@ server <- function(input, output) {
 #empty fields cannot be set to NULL, this sees what data is added and runs the correct
 #request depending on what fields are full. It's really big
     if (input$latLongcheckbox){
+#ERROR: AddCircleMarkers requres numeric latitude/longitude values
       if (input$datecheckbox & input$politicalcheckbox){
         res = occ_download(paste("decimalLatitude >=", latLow), paste("decimalLatitude <=", latHigh),
                            paste("decimalLongitude >=", longLow), paste("decimalLongitude <=", longHigh),
@@ -158,11 +159,10 @@ server <- function(input, output) {
         dat <- occ_download_get(res[1], overwrite = TRUE) %>%
           occ_download_import()
         return (dat)
-       }
-#fix this to actually handle the case      
+       }     
       if (meta$status == "KILLED"){
         continue = FALSE
-        dat <- "An error has occured with your request"
+        #Regurns: ERROR: Bad Request
       }
       #30 second delay --  Extend?
       Sys.sleep(30)
@@ -170,19 +170,19 @@ server <- function(input, output) {
       
   })
   
-#Has been changed to include gbif_data rather than inat_data
-#Whole graph cannot be viewed at once right now, too many columns, how to fix?
-  output$raw_data <- DT::renderDataTable(expr = gbif_data())
+#Displays Entire Dataset
+  output$raw_data <- DT::renderDataTable(expr = gbif_data(),options=list(autoWidth = TRUE,scrollX=TRUE))
   
-  
+  #For Tab 3?
+  #Default Cols? [,c(43,47,48,60,65,69,75,76,103:105,121,133:135,175,183,191:200,207,218,219,229,230)]
   #fileData <- write.csv(gbif_data, file = "SOARdata.csv", row.names = FALSE)
   
   output$world_map <- renderLeaflet({
-#Has been changed to include gbif_data rather than inat_data    
     leaflet(gbif_data()) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       
-      addCircleMarkers(lng = ~decimalLongitude, lat = ~decimalLatitude ,
+#ERROR when specifying Lat/Long, ERROR: AddCircleMarkers requres numeric latitude/longitude values
+      addCircleMarkers(lng = ~ decimalLongitude, lat = ~ decimalLatitude,
                        radius = 3,  #~ifelse(quality_grade == "research", 6, 3),
                        color = 'red',  #~pal(quality_grade),
                        stroke = FALSE, fillOpacity = 0.5
