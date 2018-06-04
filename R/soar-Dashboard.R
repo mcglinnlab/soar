@@ -87,7 +87,6 @@ server <- function(input, output) {
 #empty fields cannot be set to NULL, this sees what data is added and runs the correct
 #request depending on what fields are full. It's really big
     if (input$latLongcheckbox){
-#ERROR: AddCircleMarkers requres numeric latitude/longitude values
       if (input$datecheckbox & input$politicalcheckbox){
         res = occ_download(paste("decimalLatitude >=", latLow), paste("decimalLatitude <=", latHigh),
                            paste("decimalLongitude >=", longLow), paste("decimalLongitude <=", longHigh),
@@ -162,7 +161,7 @@ server <- function(input, output) {
        }     
       if (meta$status == "KILLED"){
         continue = FALSE
-        #Regurns: ERROR: Bad Request
+        #Returns: ERROR:Bad Request(HTTP 400)
       }
       #30 second delay --  Extend?
       Sys.sleep(30)
@@ -173,15 +172,14 @@ server <- function(input, output) {
 #Displays Entire Dataset
   output$raw_data <- DT::renderDataTable(expr = gbif_data(),options=list(autoWidth = TRUE,scrollX=TRUE))
   
-  #For Tab 3?
-  #Default Cols? [,c(43,47,48,60,65,69,75,76,103:105,121,133:135,175,183,191:200,207,218,219,229,230)]
-  #fileData <- write.csv(gbif_data, file = "SOARdata.csv", row.names = FALSE)
+#For Tab 3?
+#Default Cols? [,c(43,47,48,60,65,69,75,76,103:105,121,133:135,175,183,191:200,207,218,219,229,230)]
+#fileData <- write.csv(gbif_data, file = "SOARdata.csv", row.names = FALSE)
   
   output$world_map <- renderLeaflet({
     leaflet(gbif_data()) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       
-#ERROR when specifying Lat/Long, ERROR: AddCircleMarkers requres numeric latitude/longitude values
       addCircleMarkers(lng = ~ decimalLongitude, lat = ~ decimalLatitude,
                        radius = 3,  #~ifelse(quality_grade == "research", 6, 3),
                        color = 'red',  #~pal(quality_grade),
