@@ -62,6 +62,8 @@ ui <- dashboardPage(
                radioButtons("tableCols", label = "Columns in Downloadable table",
                                   choices = list("Default" = 1, "All Columns" = 2, "Custom" = 3), 
                                   selected = 1),
+#ADD - Download link for table
+               downloadButton('downloadData', label = "Download Table"),
                conditionalPanel(condition = "input.tableCols == 1",
                                 checkboxGroupInput("tableDef", label= h4("Default Options:"), choices = list("Refrences" = 43, "Rights" = 47,
                                                    "Rights holder" = 48, "Institution Code" = 60, "Information Withheld" = 65,
@@ -78,7 +80,7 @@ ui <- dashboardPage(
                conditionalPanel(condition = "input.tableCols == 2",
                                 h4("Table will contain all 235 columns.")),
                conditionalPanel(condition = "input.tableCols == 3",
-#ADD                            #checkboxes with 235 options
+                                #checkboxes with 235 options
                                 checkboxGroupInput("tableCus", label= h4("Select Options (Defaults Options Selected):"), choices = list(
                                   "Gbif ID" = 1, "Abstract" = 2, "Access Rights" =  3, "AccrualMethod" = 4, "Accrual Periodically" = 5, 
                                   "Accrual Policy" = 6, "Alternative" = 7, "Audience" = 8, "Available" = 9, "Bibliographic Citation" = 10,
@@ -264,7 +266,31 @@ server <- function(input, output) {
 #For Tab 3
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
 #Make A Downloadable Table for only the columns selected
+#  
+#  Warning: Error in download$func: unused argument (tmpdata)
+#  Stack trace (innermost first):
+#    1: runApp
+#  Error : unused argument (tmpdata)
+#  
+  downloadInfo <- function(){
+    gDat <- gbif_data()
+    if(input$tableCols == 1){
+      return(gDat[,c(input$tableDef)])
+    }
+    else if(input$tableCols == 2){
+      return(gDat)
+    }
+    else{
+      return(gDat[,c(input$tableCus)])
+    }
+  }
   
+  output$downloadData <- downloadHandler(
+    filename = function(){"gbifDat.csv"},
+    content = function(file){
+      write.csv(downloadInfo(), file)
+    }
+  )
   
   output$world_map <- renderLeaflet({
     leaflet(gbif_data()) %>%
@@ -274,12 +300,7 @@ server <- function(input, output) {
                        radius = 3,  #~ifelse(quality_grade == "research", 6, 3),
                        color = 'red',  #~pal(quality_grade),
                        stroke = FALSE, fillOpacity = 0.5
-      )# %>%
-#Remove This, there are no longer 'grades' to the observation
-      #addLegend("bottomright", pal = pal, values = ~quality_grade,
-      #          labels = c('casual', 'needs id', 'research'),
-      #          title = "The quality of the records"
-      #)
+      )
   })
 }
 
