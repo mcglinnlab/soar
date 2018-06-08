@@ -1,7 +1,5 @@
 library(shinydashboard)
 library(ggplot2)
-#want to switch functionality from rinat to rgbif
-library(rinat)
 library(DT)
 library(leaflet)
 library(rgbif)
@@ -263,15 +261,8 @@ server <- function(input, output) {
 #Displays Entire Dataset
   output$raw_data <- DT::renderDataTable(expr = gbif_data(),options=list(autoWidth = TRUE,scrollX=TRUE))
   
-#For Tab 3
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
-#Make A Downloadable Table for only the columns selected
-#  
-#  Warning: Error in download$func: unused argument (tmpdata)
-#  Stack trace (innermost first):
-#    1: runApp
-#  Error : unused argument (tmpdata)
-#  
+#Makes A Downloadable Table for only the columns selected
   downloadInfo <- function(){
     gDat <- gbif_data()
     if(input$tableCols == 1){
@@ -297,8 +288,8 @@ server <- function(input, output) {
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       
       addCircleMarkers(lng = ~ decimalLongitude, lat = ~ decimalLatitude,
-                       radius = 3,  #~ifelse(quality_grade == "research", 6, 3),
-                       color = 'red',  #~pal(quality_grade),
+                       radius = 3,
+                       color = 'red',
                        stroke = FALSE, fillOpacity = 0.5
       )
   })
