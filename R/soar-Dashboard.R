@@ -248,7 +248,7 @@ server <- function(input, output) {
         continue = FALSE
         dat <- occ_download_get(res[1], overwrite = TRUE) %>%
           occ_download_import()
-        return (dat)
+        return(dat)
        }     
       if (meta$status == "KILLED"){
         continue = FALSE
@@ -275,13 +275,13 @@ server <- function(input, output) {
   downloadInfo <- function(){
     gDat <- gbif_data()
     if(input$tableCols == 1){
-      return(gDat[,c(input$tableDef)])
+      return(gDat[ , as.numeric(input$tableDef)])
     }
     else if(input$tableCols == 2){
       return(gDat)
     }
     else{
-      return(gDat[,c(input$tableCus)])
+      return(gDat[ , as.numeric(input$tableCus)])
     }
   }
   
