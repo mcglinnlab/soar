@@ -280,7 +280,8 @@ server <- function(input, output) {
   })
   
 #Displays Entire Dataset
-  output$raw_data <- DT::renderDataTable(expr = gbif_data(),options=list(autoWidth = TRUE,scrollX=TRUE))
+  #-Changed gbif_data() to downloadInfo() to only show cols selected by user
+  output$raw_data <- DT::renderDataTable(expr = downloadInfo(),options=list(autoWidth = TRUE,scrollX=TRUE))
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
 #Makes A Downloadable Table for only the columns selected
