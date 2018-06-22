@@ -17,7 +17,7 @@ ui <- dashboardPage(
     
     #get login information
     textInput("gbif_username", "Gbif Username", "Ex: GbifUser1313"),
-    textInput("gbif_pass", "Gbif Password", "Ex: GbifPass2424"),
+    passwordInput("gbif_pass", "Gbif Password", "Ex: GbifPass2424"),
     textInput("gbif_email", "Gbif Email", "Ex: JaneSmith@generic.com"),
     
     #input latlong bounding box
