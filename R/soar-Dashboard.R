@@ -45,14 +45,22 @@ ui <- dashboardPage(
       textInput("from_date", "Show results from this month:", "mm/yyyy"),
       textInput("to_date", "to this month:", "mm/yyyy")
     ),
+    
+    #input specific download key
+    checkboxInput("downKey", label = "Specify Download Key", value = FALSE),
+    conditionalPanel (
+      condition = "input.downKey == true",
+      textInput("down_key", "Download Key:", "" )
+    ),
       
     actionButton("do", "Submit")
   ),
-  
+   
   #show results here
   dashboardBody(
     tabsetPanel(
-      tabPanel("Map",  h4("Please allow a few minutes to retrieve data after pressing 'Submit'"),
+      tabPanel("Map", 
+               if (input$do) {h4("Your request is being processed, please allow a few minutes to retrieve the data")},
                leafletOutput("world_map")),
       tabPanel("Raw Data", DT::dataTableOutput("raw_data")),
       tabPanel("Download table", 
@@ -175,7 +183,13 @@ server <- function(input, output) {
     }
 #empty fields cannot be set to NULL, this sees what data is added and runs the correct
 #request depending on what fields are full. It's really big
-    if (input$latLongcheckbox){
+    if (input$downKey){
+      continue = FALSE
+      dat <- occ_download_import(key = input$down_key)
+      return(dat)
+    }
+    else if (input$latLongcheckbox){
+      continue = TRUE
       if (input$datecheckbox & input$politicalcheckbox){
         res = occ_download(paste("decimalLatitude >=", latLow), paste("decimalLatitude <=", latHigh),
                            paste("decimalLongitude >=", longLow), paste("decimalLongitude <=", longHigh),
@@ -211,6 +225,7 @@ server <- function(input, output) {
       }
     }
     else if (input$datecheckbox){
+      continue = TRUE
       if (input$politicalcheckbox){
         res = occ_download(paste("year >=", fromY), paste("year <=", toY), paste("month >=", fromM),
                            paste("month <=", toM), paste("country =", country), 
@@ -227,19 +242,20 @@ server <- function(input, output) {
       }
     }
     else if (input$politicalcheckbox){
+      continue = TRUE
       res = occ_download(paste("country =", country), 
                          paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
                          user = input$gbif_username, pwd = input$gbif_pass, 
                          email = input$gbif_email)
     }
     else{
+      continue = TRUE
       res = occ_download(paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
                          user = input$gbif_username, pwd = input$gbif_pass, 
                          email = input$gbif_email)
     }
     
 #loops so that it checks every 30 seconds to see if meta$status is "SUCCEEDED" or "KILLED"
-    continue = TRUE
     while(continue){
       meta = occ_download_meta(res)
        if (meta$status == "SUCCEEDED"){
