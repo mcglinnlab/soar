@@ -66,11 +66,16 @@ ui <- dashboardPage(
       tabPanel("Download table", 
               # h2("Ability to download the table will be added here"),
                radioButtons("tableCols", label = "Columns in Downloadable table",
-                                  choices = list("Default" = 1, "All Columns" = 2, "Custom" = 3), 
+                                  choices = list("Minimal" = 1, "Default" = 2, "All Columns" = 3, "Custom" = 4), 
                                   selected = 1),
 #ADD - Download link for table
                downloadButton('downloadData', label = "Download Table"),
-               conditionalPanel(condition = "input.tableCols == 1",
+               conditionalPanel(condition = "input.tableCols == 1", 
+                                checkboxGroupInput("tableMin", label = h4("Minimal Options:"), choices = list(
+                                                    "Species" = 229, "Taxon ID" = 175, "Key" = 220, "Decimal Latitude" = 133, "Decimal Longitude" = 134
+                                                     ), 
+                                                   selected = c(133, 134, 175, 220, 229))),
+               conditionalPanel(condition = "input.tableCols == 2",
                                 checkboxGroupInput("tableDef", label= h4("Default Options:"), choices = list("Refrences" = 43, "Rights" = 47,
                                                    "Rights holder" = 48, "Institution Code" = 60, "Information Withheld" = 65,
                                                    "Catalog Number" = 69, "Sex" = 75, "Life Stage" = 76, "Verbatim Event Date" = 106,
@@ -83,9 +88,9 @@ ui <- dashboardPage(
                                                    ),
                                                    selected = c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230))
                                 ),
-               conditionalPanel(condition = "input.tableCols == 2",
-                                h4("Table will contain all 235 columns.")),
                conditionalPanel(condition = "input.tableCols == 3",
+                                h4("Table will contain all 235 columns.")),
+               conditionalPanel(condition = "input.tableCols == 4",
                                 #checkboxes with 235 options
                                 checkboxGroupInput("tableCus", label= h4("Select Options (Defaults Options Selected):"), choices = list(
                                   "Gbif ID" = 1, "Abstract" = 2, "Access Rights" =  3, "AccrualMethod" = 4, "Accrual Periodically" = 5, 
@@ -282,9 +287,12 @@ server <- function(input, output) {
   downloadInfo <- function(){
     gDat <- gbif_data()
     if(input$tableCols == 1){
-      return(gDat[ , as.numeric(input$tableDef)])
+      return(gDat[ , as.numeric(input$tableMin)])
     }
     else if(input$tableCols == 2){
+      return(gDat[ , as.numeric(input$tableDef)])
+    }
+    else if(input$tableCols == 3){
       return(gDat)
     }
     else{
