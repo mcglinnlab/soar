@@ -3,6 +3,7 @@ library(ggplot2)
 library(DT)
 library(leaflet)
 library(rgbif)
+library(shinycssloaders)
 
 #create a user interface
 ui <- dashboardPage(
@@ -59,9 +60,7 @@ ui <- dashboardPage(
   #show results here
   dashboardBody(
     tabsetPanel(
-      tabPanel("Map", 
-               if (input$do) {h4("Your request is being processed, please allow a few minutes to retrieve the data")},
-               leafletOutput("world_map")),
+      tabPanel("Map", withSpinner(leafletOutput("world_map"))),
       tabPanel("Raw Data", DT::dataTableOutput("raw_data")),
       tabPanel("Download table", 
               # h2("Ability to download the table will be added here"),
@@ -190,7 +189,7 @@ server <- function(input, output) {
 #request depending on what fields are full. It's really big
     if (input$downKey){
       continue = FALSE
-      dat <- occ_download_import(key = input$down_key)
+      dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE) %>% occ_download_import()
       return(dat)
     }
     else if (input$latLongcheckbox){
