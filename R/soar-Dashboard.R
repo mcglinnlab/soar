@@ -76,8 +76,11 @@ ui <- dashboardPage(
 #ADD - Download link for table
                downloadButton('downloadData', label = "Download Table"),
                conditionalPanel(condition = "input.tableCols == 1", 
-                                checkboxGroupInput("tableMin", label = h4("Minimal Options:"), choices = list(
-                                                    "Species" = 229, "Taxon ID" = 175, "Key" = 220, "Decimal Latitude" = 133, "Decimal Longitude" = 134)
+                                checkboxGroupInput("tableMin", label = h4("Minimal Options:"), choices = 
+                                                     htmlOutput("choicesList")
+                                                     
+                                                #     list(
+                                                #    "Species" = 229, "Taxon ID" = 175, "Key" = 220, "Decimal Latitude" = 133, "Decimal Longitude" = 134)
                                                      , 
                                                    selected = c(133, 134, 175, 220, 229))),
                conditionalPanel(condition = "input.tableCols == 2",
@@ -304,6 +307,42 @@ server <- function(input, output) {
     else{
       return(gDat[ , as.numeric(input$tableCus)])
     }
+  }
+  
+  output$choicesList <- function(){
+    Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
+    # [row,col] cols: colName, MetaData, Minimal, Default, Custom
+    lis<-c()
+    lis2 <- c()
+    if (input$tableCols == 1){
+      for (i in 1:length(Gbif_fields[,1])){
+        if (Gbif_fields[i,3] == 1) {
+          lis<- c(lis, paste(Gbif_fields[i,1]))
+          lis2 <- c(lis2,i)
+        }
+      }
+    }
+    if (input$tableCols == 2){
+      for (i in 1:length(Gbif_fields[,1])){
+        if (Gbif_fields[i,4] == 1) {
+          lis<- c(lis, paste(Gbif_fields[i,1]))
+          lis2 <- c(lis2,i)
+        }
+      }
+    }
+    if (input$tableCols == 4){
+      for (i in 1:length(Gbif_fields[,1])){
+        if (Gbif_fields[i,5] == 1) {
+          lis<- c(lis, paste(Gbif_fields[i,1]))
+          lis2 <- c(lis2,i)
+        }
+      }
+    }
+    finalList <- list()
+    for (i in 1:length(lis)) {
+      finalList[[lis[i]]] <- as.double(lis2 [i])
+    }
+    return(finalList)
   }
   
   output$downloadData <- downloadHandler(
