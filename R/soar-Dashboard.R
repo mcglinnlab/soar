@@ -46,7 +46,7 @@ ui <- dashboardPage(
       textInput("from_date", "Show results from this month:", "mm/yyyy"),
       textInput("to_date", "to this month:", "mm/yyyy")
     ),
-    
+  
     #input specific download key
     checkboxInput("downKey", label = "Specify Download Key", value = FALSE),
     conditionalPanel (
@@ -60,7 +60,13 @@ ui <- dashboardPage(
   #show results here
   dashboardBody(
     tabsetPanel(
-      tabPanel("Map", withSpinner(leafletOutput("world_map"))),
+      tabPanel("Map", withSpinner(leafletOutput("world_map")),
+#Add downsampling options here
+               box(title = "Down-sample Tools", "Option 1:",
+                actionButton("DefDown", "Down-Sample data using simple random sampling"), br(),
+                "Option 2:", 
+                textInput("GridCellSize", "Grid Cell Size: "), textInput("MinCellDen", "Minimum Cell Density:"), 
+                actionButton("CusDown", "Down-Sample data with custom settings"))),
       tabPanel("Raw Data", DT::dataTableOutput("raw_data")),
       tabPanel("Download table", 
               # h2("Ability to download the table will be added here"),
@@ -71,8 +77,8 @@ ui <- dashboardPage(
                downloadButton('downloadData', label = "Download Table"),
                conditionalPanel(condition = "input.tableCols == 1", 
                                 checkboxGroupInput("tableMin", label = h4("Minimal Options:"), choices = list(
-                                                    "Species" = 229, "Taxon ID" = 175, "Key" = 220, "Decimal Latitude" = 133, "Decimal Longitude" = 134
-                                                     ), 
+                                                    "Species" = 229, "Taxon ID" = 175, "Key" = 220, "Decimal Latitude" = 133, "Decimal Longitude" = 134)
+                                                     , 
                                                    selected = c(133, 134, 175, 220, 229))),
                conditionalPanel(condition = "input.tableCols == 2",
                                 checkboxGroupInput("tableDef", label= h4("Default Options:"), choices = list("Refrences" = 43, "Rights" = 47,
