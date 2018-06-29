@@ -8,11 +8,10 @@ library(shinycssloaders)
 min_choice <- function() {
   Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
   # [row,col] cols: colName, MetaData, Minimal, Default, Custom
-  lis<-c()
+  lis<-Gbif_fields$Column.Name[Gbif_fields$Minimal == 1]
   lis2 <- c()
-  for (i in 1:length(Gbif_fields[,1])){
-    if (Gbif_fields[i,3] == 1) {
-      lis<- c(lis, paste(Gbif_fields[i,1]))
+  for (i in 1:length(Gbif_fields$Column.Name)){
+    if (Gbif_fields$Minimal[i] == 1) {
       lis2 <- c(lis2,i)
     }
   }
@@ -20,18 +19,15 @@ min_choice <- function() {
   for (i in 1:length(lis)) {
     final_list[[lis[i]]] <- as.double(lis2 [i])
   }
-  
   return(final_list)
-  
 }
 def_choice <- function() {
   Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
   # [row,col] cols: colName, MetaData, Minimal, Default, Custom
-  lis<-c()
+  lis<-Gbif_fields$Column.Name[Gbif_fields$Default == 1]
   lis2 <- c()
-  for (i in 1:length(Gbif_fields[,1])){
-    if (Gbif_fields[i,4] == 1) {
-      lis<- c(lis, paste(Gbif_fields[i,1]))
+  for (i in 1:length(Gbif_fields$Column.Name)){
+    if (Gbif_fields$Default[i] == 1) {
       lis2 <- c(lis2,i)
     }
   }
@@ -39,18 +35,15 @@ def_choice <- function() {
   for (i in 1:length(lis)) {
     final_list[[lis[i]]] <- as.double(lis2 [i])
   }
-  
   return(final_list)
-  
 }
 cus_choice <- function() {
   Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
   # [row,col] cols: colName, MetaData, Minimal, Default, Custom
-  lis<-c()
+  lis<-Gbif_fields$Column.Name[Gbif_fields$Custom == 1]
   lis2 <- c()
-  for (i in 1:length(Gbif_fields[,1])){
-    if (Gbif_fields[i,5] == 1) {
-      lis<- c(lis, paste(Gbif_fields[i,1]))
+  for (i in 1:length(Gbif_fields$Column.Name)){
+    if (Gbif_fields$Custom[i] == 1) {
       lis2 <- c(lis2,i)
     }
   }
@@ -58,9 +51,7 @@ cus_choice <- function() {
   for (i in 1:length(lis)) {
     final_list[[lis[i]]] <- as.double(lis2 [i])
   }
-  
   return(final_list)
-  
 }
 #create a user interface
 ui <- dashboardPage(
