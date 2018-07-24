@@ -5,49 +5,31 @@ library(leaflet)
 library(rgbif)
 library(shinycssloaders)
 
-min_choice <- function() {
+choice <- function(input_num) {
   Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
-  # [row,col] cols: colName, MetaData, Minimal, Default, Custom
-  lis<-Gbif_fields$Column.Name[Gbif_fields$Minimal == 1]
+  # Note to Self -- [row,col] cols: colName, MetaData, Minimal, Default, Custom
+  #Sets lis to a list of the row names selected and sets selected to a list of values in the column
+  if (input_num ==1){
+    lis<-Gbif_fields$Column.Name[Gbif_fields$Minimal == 1]
+    selected <- Gbif_fields$Minimal
+  }
+  else if (input_num == 2) {
+    lis<-Gbif_fields$Column.Name[Gbif_fields$Default == 1]
+    selected <- Gbif_fields$Default
+  }
+  else {
+    lis<-Gbif_fields$Column.Name[Gbif_fields$Custom == 1]
+    selected <- Gbif_fields$Custom
+  }
   lis2 <- c()
+  #Sets lis2 to a list of each row number that corresponds to a value in lis
   for (i in 1:length(Gbif_fields$Column.Name)){
-    if (Gbif_fields$Minimal[i] == 1) {
+    if (selected[i] == 1) {
       lis2 <- c(lis2,i)
     }
   }
   final_list <- list()
-  for (i in 1:length(lis)) {
-    final_list[[lis[i]]] <- as.double(lis2 [i])
-  }
-  return(final_list)
-}
-def_choice <- function() {
-  Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
-  # [row,col] cols: colName, MetaData, Minimal, Default, Custom
-  lis<-Gbif_fields$Column.Name[Gbif_fields$Default == 1]
-  lis2 <- c()
-  for (i in 1:length(Gbif_fields$Column.Name)){
-    if (Gbif_fields$Default[i] == 1) {
-      lis2 <- c(lis2,i)
-    }
-  }
-  final_list <- list()
-  for (i in 1:length(lis)) {
-    final_list[[lis[i]]] <- as.double(lis2 [i])
-  }
-  return(final_list)
-}
-cus_choice <- function() {
-  Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
-  # [row,col] cols: colName, MetaData, Minimal, Default, Custom
-  lis<-Gbif_fields$Column.Name[Gbif_fields$Custom == 1]
-  lis2 <- c()
-  for (i in 1:length(Gbif_fields$Column.Name)){
-    if (Gbif_fields$Custom[i] == 1) {
-      lis2 <- c(lis2,i)
-    }
-  }
-  final_list <- list()
+  #combines lis and lis2 into a format that can be used by the choices variabe in checkboxGroupInput()
   for (i in 1:length(lis)) {
     final_list[[lis[i]]] <- as.double(lis2 [i])
   }
@@ -124,17 +106,17 @@ ui <- dashboardPage(
                downloadButton('download_data', label = "Download Table"),
                conditionalPanel(condition = "input.table_cols == 1", 
                                 checkboxGroupInput("table_min", label = h4("Minimal Options:"), choices =
-                                                   min_choice(), 
+                                                   choice(1), 
                                                    selected = c(133, 134, 175, 220, 229))),
                conditionalPanel(condition = "input.table_cols == 2",
-                                checkboxGroupInput("table_def", label= h4("Default Options:"), choices = def_choice(),
+                                checkboxGroupInput("table_def", label= h4("Default Options:"), choices = choice(2),
                                                    selected = c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230))
                                 ),
                conditionalPanel(condition = "input.table_cols == 3",
                                 h4("Table will contain all columns.")),
                conditionalPanel(condition = "input.table_cols == 4",
                                 #checkboxes with 235 options
-                                checkboxGroupInput("table_cus", label= h4("Select Options (Defaults Options Selected):"), choices = cus_choice(),
+                                checkboxGroupInput("table_cus", label= h4("Select Options (Defaults Options Selected):"), choices = choice(3),
                               selected = c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230))
                                 )
                )
