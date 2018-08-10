@@ -90,15 +90,9 @@ ui <- dashboardPage(
   #show results here
   dashboardBody(
     tabsetPanel(
-      tabPanel("Map", withSpinner(leafletOutput("world_map")),
-#Add downsampling options here
-               box(title = "Down-sample Tools", "Option 1:",
-                actionButton("def_down", "Down-Sample data using simple random sampling"), br(),
-                "Option 2:", 
-                textInput("grid_cell_size", "Grid Cell Size: "), textInput("MinCellDen", "Minimum Cell Density:"), 
-                actionButton("cus_down", "Down-Sample data with custom settings"))),
+      tabPanel("Map", withSpinner(leafletOutput("world_map"))),
       tabPanel("Raw Data", DT::dataTableOutput("raw_data")),
-      tabPanel("Download table",
+      tabPanel("Download Table",
                radioButtons("table_cols", label = "Columns in Downloadable table",
                                   choices = list("Minimal" = 1, "Default" = 2, "All Columns" = 3, "Custom" = 4), 
                                   selected = 1),
@@ -119,8 +113,11 @@ ui <- dashboardPage(
                                 checkboxGroupInput("table_cus", label= h4("Select Options (Defaults Options Selected):"), choices = choice(3),
                               selected = c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230))
                                 )
-               )
-      
+               ),
+              
+      tabPanel("Clean Data"),
+      tabPanel("Detect Bias"),
+      tabPanel("Download Cleaned Data")
     )
     
   )
