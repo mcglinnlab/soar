@@ -115,7 +115,21 @@ ui <- dashboardPage(
                                 )
                ),
               
-      tabPanel("Clean Data"),
+      tabPanel("Clean Data", 
+               checkboxGroupInput("cc_options", label = h4("Flag possibly erronious data based on:"), choices = (c("Proximity to capitals" = 1, "Proximity to country centroids" = 2, 
+                                  "Actual coordinate location vs. country specified by the data (It is recomended that this not be selected if oceanic species are involved)" = 3, 
+                                  "Duplications of records" = 4, "Records with identical coordinates" = 5, "Proximity to Gbif headquarters" = 6, "Proximity to biodiversity institutions" = 7, 
+                                  "Outliers" = 8, "Locaton relative to the oceans (check if records include only terrestrial organisms)" = 9, 
+                                  "Proximity urban areas" =10, "Equal latitude and longitude, plain zeros, and proximity to point 0/0" = 11))),
+               #These need to be conditional, only available if their corresponding box is checked
+               numericInput("cap_rad", "Radius around capitals (degrees)", 0.1),
+               numericInput("cen_rad", "Side length of rectangle around country centroids (degrees)", 0.01),
+               selectInput("cen_detail", "Test around country centroids, province centroids, or both", 
+                           choices = list("Country" = 1, "Province" = 2, "Both" = 3), selected = 3),
+               numericInput("inst_rad", "Radius around biodiversity institutions (degrees)", 0.001)
+               #Input outliers.mtp here
+               #Rest of the options here
+               ),
       tabPanel("Detect Bias"),
       tabPanel("Download Cleaned Data")
     )
