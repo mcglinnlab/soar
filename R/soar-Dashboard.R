@@ -116,42 +116,58 @@ ui <- dashboardPage(
                ),
               
       tabPanel("Clean Data", 
-               checkboxGroupInput("cc_options", label = h4("Flag possibly erronious data based on:"), choices = (c("Proximity to capitals" = 1, "Proximity to country centroids" = 2, 
-                                  "Actual coordinate location vs. country specified by the data (It is recomended that this not be selected if oceanic species are involved)" = 3, 
-                                  "Duplications of records" = 4, "Records with identical coordinates" = 5, "Proximity to Gbif headquarters" = 6, "Proximity to biodiversity institutions" = 7, 
-                                  "Outliers" = 8, "Locaton relative to the oceans (check if records include only terrestrial organisms)" = 9, 
-                                  "Proximity urban areas" =10, "Equal latitude and longitude, plain zeros, and proximity to point 0/0" = 11))),
-               #These need to be conditional, only available if their corresponding box is checked
-               conditionalPanel(condition = "1 %in% input.cc_options",
+               h4("Flag possibly erronious data based on:"),
+               checkboxInput("cap_prox_box", label = "Proximity to capitals", value = FALSE),
+               checkboxInput("cen_prox_box", label = "Proximity to country centroids", value = FALSE),
+               checkboxInput("lat_long_check", label = "Actual coordinate location vs. country specified by the data (It is recomended that this not be selected if oceanic species are involved", value = FALSE),
+               checkboxInput("rec_dup", label = "Duplications of records", value = FALSE), 
+               checkboxInput("iden_lat_long", label = "Records with identical coordinates", value = FALSE),
+               checkboxInput("gbif_prox", label = "Proximity to Gbif headquarters", value = FALSE),
+               checkboxInput("bio_prox", label = "Proximity to biodiversity institutions", value = FALSE),
+               checkboxInput("out_box", label = "Outliers", value = FALSE),
+               checkboxInput("sea_box", label = "Locaton relative to the oceans (check if records include only terrestrial organisms)", value = FALSE),
+               checkboxInput("urb_prox", label = "Proximity urban areas", value = FALSE),
+               checkboxInput("equ_zero_zero", label = "Equal latitude and longitude, plain zeros, and proximity to point 0/0", value = FALSE),
+              
+               
+              #These are conditional, only available if their corresponding box is checked
+               conditionalPanel(condition = "input.cap_prox_box == true",
                                 numericInput("cap_rad", "Radius around capitals (degrees)", 0.1)
                                 ),
-               contidionalPanel(condition = "2 %in% input.cc_options",
+               conditionalPanel(condition = "input.cen_prox_box == true",
                                 numericInput("cen_rad", "Side length of rectangle around country centroids (degrees)", 0.01),
                                 selectInput("cen_detail", "Test around country centroids, province centroids, or both", 
                                             choices = list("Country" = 1, "Province" = 2, "Both" = 3), selected = 3)
                                 ),
-               conditionalPanel(condition = "7 %in% input.cc_options | 6 %in% input.cc_options",
+               conditionalPanel(condition = "input.bio_prox == true | input.gbif_prox == true",
                                 numericInput("inst_rad", "Radius around biodiversity institutions, including GBIF (degrees)", 0.001)
                                 ),
-               #Input outliers.method here
-               #Input outliers.mtp here
-               #Input outliers.td here
-               #Input outliers.size here
-               conditionalPanel(condition = "11 %in% input.cc_options",
+               conditionalPanel(condition = "input.out_box == true", 
+                                selectInput("out_type", "What outlier test would you like to use?", 
+                                            choices = list("Boxplot distance of records from each other" = 1, 
+                                                           "Mean absolute deviation of the distance of records from each other" = 2,
+                                                           "Minimum distance to next record is greater than selected" = 3)
+                                            #1 = "outlier", 2 = "mad", 3 = "distance"
+                                            ),
+                                conditionalPanel(condition = "input.out_type == 2", 
+                                                 numericInput("out_mtp","Multiplier for interquartile range",3) ),
+                                conditionalPanel(condition = "input.out_type == 3",
+                                                 numericInput("out_td","Minimum distance of a record to all other records to be identified as an outlier (km)",1000) ),
+                                numericInput("out_size", "Minimum number of records to run the taxon-specific outlier test", 7)
+                                ),
+               conditionalPanel(condition = "input.equ_zero_zero == true",
                                 numericInput("zero_rad", "Radius around 0/0 (degrees)", 0.5)
-               )
-               #provide these? ---!!!!!!!!!!!!!!!!! --- Don't require as input?
+               ),
+               #provide these (do not require as input):
                 #capitals.ref
                 #centroids.ref
                 #country.ref
                 #inst.ref
                 #seas.ref
                 #urban.ref
-               
-               
-               #value
-               #verbose
-               #report
+               selectInput("value_input", "What kind of output would you like?", 
+                           choices = list("Spatial Valid - Added columns in the data set show what data was flagged and for what test" = 1, "Clean - the flagged data is automatically removed" = 2), selected = 1)
+               #verbose = False
                ),
       tabPanel("Detect Bias"),
       tabPanel("Download Cleaned Data")
