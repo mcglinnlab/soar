@@ -122,13 +122,36 @@ ui <- dashboardPage(
                                   "Outliers" = 8, "Locaton relative to the oceans (check if records include only terrestrial organisms)" = 9, 
                                   "Proximity urban areas" =10, "Equal latitude and longitude, plain zeros, and proximity to point 0/0" = 11))),
                #These need to be conditional, only available if their corresponding box is checked
-               numericInput("cap_rad", "Radius around capitals (degrees)", 0.1),
-               numericInput("cen_rad", "Side length of rectangle around country centroids (degrees)", 0.01),
-               selectInput("cen_detail", "Test around country centroids, province centroids, or both", 
-                           choices = list("Country" = 1, "Province" = 2, "Both" = 3), selected = 3),
-               numericInput("inst_rad", "Radius around biodiversity institutions (degrees)", 0.001)
+               conditionalPanel(condition = "1 %in% input.cc_options",
+                                numericInput("cap_rad", "Radius around capitals (degrees)", 0.1)
+                                ),
+               contidionalPanel(condition = "2 %in% input.cc_options",
+                                numericInput("cen_rad", "Side length of rectangle around country centroids (degrees)", 0.01),
+                                selectInput("cen_detail", "Test around country centroids, province centroids, or both", 
+                                            choices = list("Country" = 1, "Province" = 2, "Both" = 3), selected = 3)
+                                ),
+               conditionalPanel(condition = "7 %in% input.cc_options | 6 %in% input.cc_options",
+                                numericInput("inst_rad", "Radius around biodiversity institutions, including GBIF (degrees)", 0.001)
+                                ),
+               #Input outliers.method here
                #Input outliers.mtp here
-               #Rest of the options here
+               #Input outliers.td here
+               #Input outliers.size here
+               conditionalPanel(condition = "11 %in% input.cc_options",
+                                numericInput("zero_rad", "Radius around 0/0 (degrees)", 0.5)
+               )
+               #provide these? ---!!!!!!!!!!!!!!!!! --- Don't require as input?
+                #capitals.ref
+                #centroids.ref
+                #country.ref
+                #inst.ref
+                #seas.ref
+                #urban.ref
+               
+               
+               #value
+               #verbose
+               #report
                ),
       tabPanel("Detect Bias"),
       tabPanel("Download Cleaned Data")
