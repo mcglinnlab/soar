@@ -119,14 +119,14 @@ ui <- dashboardPage(
                h4("Flag possibly erronious data based on:"),
                checkboxInput("cap_prox_box", label = "Proximity to capitals", value = FALSE),
                checkboxInput("cen_prox_box", label = "Proximity to country centroids", value = FALSE),
-               checkboxInput("lat_long_check", label = "Actual coordinate location vs. country specified by the data (It is recomended that this not be selected if oceanic species are involved", value = FALSE),
+               checkboxInput("lat_long_check", label = "Actual coordinate location vs. country specified by the data (It is recomended that this not be selected if oceanic species are involved)", value = FALSE),
                checkboxInput("rec_dup", label = "Duplications of records", value = FALSE), 
                checkboxInput("iden_lat_long", label = "Records with identical coordinates", value = FALSE),
                checkboxInput("gbif_prox", label = "Proximity to Gbif headquarters", value = FALSE),
                checkboxInput("bio_prox", label = "Proximity to biodiversity institutions", value = FALSE),
                checkboxInput("out_box", label = "Outliers", value = FALSE),
                checkboxInput("sea_box", label = "Locaton relative to the oceans (check if records include only terrestrial organisms)", value = FALSE),
-               checkboxInput("urb_prox", label = "Proximity urban areas", value = FALSE),
+               checkboxInput("urb_prox", label = "Proximity to urban areas", value = FALSE),
                checkboxInput("equ_zero_zero", label = "Equal latitude and longitude, plain zeros, and proximity to point 0/0", value = FALSE),
               
                
@@ -166,11 +166,14 @@ ui <- dashboardPage(
                 #seas.ref
                 #urban.ref
                selectInput("value_input", "What kind of output would you like?", 
-                           choices = list("Spatial Valid - Added columns in the data set show what data was flagged and for what test" = 1, "Clean - the flagged data is automatically removed" = 2), selected = 1)
+                           choices = list("Spatial Valid - A separate document with what data was flagged and for what test" = 1, "Clean - the flagged data is automatically removed" = 2), selected = 1),
                #verbose = False
+              actionButton("do_clean", "Submit")
                ),
       tabPanel("Detect Bias"),
-      tabPanel("Download Cleaned Data")
+      tabPanel("Download Cleaned Data", 
+               h4("'True' means the data passed the tests indicated, 'False' means it failed"),
+               DT::dataTableOutput("clean_data"))
     )
     
   )
@@ -293,6 +296,79 @@ server <- function(input, output) {
 #Displays Entire Dataset
   #-Changed gbif_data() to download_info() to only show cols selected by user
   output$raw_data <- DT::renderDataTable(expr = download_info(),options=list(autoWidth = TRUE,scrollX=TRUE))
+  
+#Display Cleaned Dataset based on criteria  
+  output$clean_data <- DT::renderDataTable(expr = clean_info(),options=list(autoWidth = TRUE,scrollX=TRUE))
+  
+  #Clean Data based on input
+  clean_info <- eventReactive(input$do_clean, {
+    dat = CleanCoordinates(x= gbif_data(),lon = "decimalLongitude", lat = "decimalLatitude",
+                           species = "species", countries = "countryCode",
+                           capitals = input$cap_prox_box,
+                           centroids = input$cen_prox_box,
+                           countrycheck = input$lat_long_check,
+                           duplicates = input$rec_dup,
+                           equal = input$iden_lat_long,
+                           GBIF = input$gbif_prox,
+                           institutions = input$bio_prox,
+                           outliers = input$out_box,
+                           seas = input$sea_box,
+                           urban = input$urb_prox,
+                           zeros = input$equ_zero_zero,
+                           capitals.rad = input$cap_rad,
+                           centroids.rad = input$cen_rad,
+                           centroids.detail = cen_detail_val(),
+                           inst.rad = input$inst_rad,
+                           outliers.method = out_type_val(),
+                           outliers.mtp = input$out_mtp,
+                           outliers.td = input$out_td,
+                           outliers.size = input$out_size,
+                           zeros.rad = input$zero_rad,
+#PROVIDE THESE-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!           
+#                           capitals.ref = ,
+#                           centroids.ref = ,
+#                           country.ref = ,
+#                           inst.ref = ,
+#                           seas.ref = ,
+#                           urban.ref = ,
+                           value = value_input_val(),
+                           verbose = FALSE,
+                           report = FALSE
+    )
+    return(dat)
+  })
+  
+  cen_detail_val <- function(){
+    if (input$cen_detail == 1){
+      return("country")
+    }
+    else if(input$cen_detail == 2){
+      return("provinces")
+    }
+    else{
+      return("both")
+    }
+  }
+  value_input_val <- function(){
+    if (input$value_input == 1){
+      return("spatialvalid")
+    }
+    else {
+      return("clean")
+    }
+  }
+  out_type_val <- function(){
+    if (input$out_type == 1){
+      return("quantile")
+    }
+    else if (input$out_type == 2){
+      return("mad")
+    }
+    else{
+      return("distance")
+    }
+  }
+  
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
 #Makes A Downloadable Table for only the columns selected
