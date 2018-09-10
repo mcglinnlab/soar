@@ -170,6 +170,14 @@ ui <- dashboardPage(
                #verbose = False
               actionButton("do_clean", "Submit")
                ),
+      tabPanel("Alternative Coordinates",
+               h4("Directions:"),
+               h4("If you wish to see possible alternatives for outliers click on the outlier. You will then be given options (Purple) including swapped x and y coordinates, changing the sign on the x and y coordinates, and a few others.
+                  select the one you wish to replace the old coordinate set with or on the origional point to exclude it. Select the stop button if none of the 
+                  alternatives are correct but you do not wish to exlude the point. When a record is changed, all rcords with identical coordinates will be 
+                  changed in the same way.")
+               #Add the output for the table here
+               ),
       tabPanel("Detect Bias"),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
