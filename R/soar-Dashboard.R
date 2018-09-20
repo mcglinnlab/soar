@@ -97,7 +97,6 @@ ui <- dashboardPage(
                radioButtons("table_cols", label = "Columns in Downloadable table",
                                   choices = list("Minimal" = 1, "Default" = 2, "All Columns" = 3, "Custom" = 4), 
                                   selected = 1),
-#ADD - Download link for table
                downloadButton('download_data', label = "Download Table"),
                conditionalPanel(condition = "input.table_cols == 1", 
                                 checkboxGroupInput("table_min", label = h4("Minimal Options:"), choices =
@@ -174,7 +173,8 @@ ui <- dashboardPage(
       tabPanel("Detect Bias"),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
-               DT::dataTableOutput("clean_data"))
+               downloadButton('download_clean_data', label = "Download Table"),
+               withSpinner(DT::dataTableOutput("clean_data")))
     )
     
   )
@@ -393,6 +393,13 @@ server <- function(input, output) {
     filename = function(){"gbifDat.csv"},
     content = function(file){
       write.csv(download_info(), file)
+    }
+  )
+  
+  output$download_clean_data <- downloadHandler(
+    filename = function(){"CleanGbifDat.csv"},
+    content = function(file){
+      write.csv(clean_info() ,file)
     }
   )
   
