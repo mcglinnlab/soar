@@ -8,6 +8,7 @@ library(CoordinateCleaner)
 
 choice <- function(input_num) {
   Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
+  Country_codes <- read.csv("countryCodes.csv", as.is = TRUE)
   # Note to Self -- [row,col] cols: colName, MetaData, Minimal, Default, Custom
   #Sets lis to a list of the row names selected and sets selected to a list of values in the column
   if (input_num ==1){
@@ -18,9 +19,19 @@ choice <- function(input_num) {
     lis<-Gbif_fields$Column.Name[Gbif_fields$Default == 1]
     selected <- Gbif_fields$Default
   }
-  else {
+  else if (input_num == 3){
     lis<-Gbif_fields$Column.Name[Gbif_fields$Custom == 1]
     selected <- Gbif_fields$Custom
+  }
+  else {
+    lis <- Country_codes$CountryCodes
+    selected <- Country_codes$CountryCodes
+    lis2 <- 1:304
+    final_list <- list()
+    for (i in 1:length(lis)){
+      final_list[[lis[i]]] <- as.double(lis2 [i])
+    }
+    return(final_list)
   }
   lis2 <- c()
   #Sets lis2 to a list of each row number that corresponds to a value in lis
@@ -45,7 +56,9 @@ ui <- dashboardPage(
   dashboardSidebar(
     #get species name
     textInput("species_name", "Species name", "Caretta caretta"),
-    textInput("rank", "Taxonomic rank", "species"),
+    selectInput("rank", "Taxonomic rank", 
+                choices = list("Species" = 1,"Genus" = 2, "Family" = 3,"Order" = 4, 
+                               "Class" = 5, "Phylum" = 6, "Kingdom" = 7), selected = 1),
     
     #get login information
     textInput("gbif_username", "Gbif Username", "Ex: GbifUser1313"),
@@ -57,25 +70,25 @@ ui <- dashboardPage(
                   value = FALSE),
     conditionalPanel (
       condition = "input.lat_long_check_box == true",
-      textInput("Lat_low", "Latitude lower range", "-90"),
-      textInput("Lat_high", "Latitude upper range", "90"),
-      textInput("Long_low", "Longitude lower range", "-180"),
-      textInput("Long_high", "Longitude upper range", "180")
+      numericInput("Lat_low", "Latitude lower range", "-90", min = -90, max = 90),
+      numericInput("Lat_high", "Latitude upper range", "90", min = -90, max = 90),
+      numericInput("Long_low", "Longitude lower range", "-180", min = -180, max = 180),
+      numericInput("Long_high", "Longitude upper range", "180", min = -180, max = 180)
     ),
     
     #input bounding box with political boundaries
     checkboxInput("political_checkbox", label = "Input Geographical boundaries by country"),
     conditionalPanel(
       condition ="input.political_checkbox == true",
-      textInput("political_boundary", "Country Name", "Country Code")
+      selectInput("political_boundary", "Country Name", choices = choice(4), selected = 280)
       ),
    
      #input date bounding information for gbif
     checkboxInput("date_checkbox", label = "Sort by date", value = FALSE),
     conditionalPanel (
       condition = "input.date_checkbox == true",
-      textInput("from_date", "Show results from this month:", "mm/yyyy"),
-      textInput("to_date", "to this month:", "mm/yyyy")
+      dateInput("from_date", "Show results from this date:"),
+      dateInput("to_date", "to this date:")
     ),
   
     #input specific download key
@@ -189,17 +202,25 @@ server <- function(input, output) {
     if (input$political_checkbox){ country <- input$political_boundary}
     #filter by date
     if (input$date_checkbox){
-      to_m <- substr(input$to_date, 1,2)
-      from_m<- substr(input$from_date, 1,2)
-      to_y <- substr(input$to_date, 4, 7)
-      from_y <- substr(input$from_date, 4, 7)
+      to_m <- substr(input$to_date, 6,7)
+      from_m<- substr(input$from_date, 6,7)
+      to_y <- substr(input$to_date, 1, 4)
+      from_y <- substr(input$from_date, 1, 4)
     }
     #filter by lat/long
     if (input$lat_long_check_box){
+      if (missing(input$Lat_low) || missing(input$Lat_high) || missing(input$Long_low) || missing(input$Long_high)){
+        low_lat <- -90
+        high_lat <- 90
+        low_long <- -180
+        high_long <- 180
+      }
+      else{
       low_lat <- input$Lat_low
       high_lat <- input$Lat_high
       low_long <- input$Long_low
       high_long <- input$Long_high
+    }
     }
 #empty fields cannot be set to NULL, this sees what data is added and runs the correct
 #request depending on what fields are full. It's really big
