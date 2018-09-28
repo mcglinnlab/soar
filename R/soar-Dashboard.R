@@ -26,10 +26,10 @@ choice <- function(input_num) {
   else {
     lis <- Country_codes$CountryCodes
     selected <- Country_codes$CountryCodes
-    lis2 <- 1:304
+    lis2 <- Country_codes$CountryCodes
     final_list <- list()
-    for (i in 1:length(lis)){
-      final_list[[lis[i]]] <- as.double(lis2 [i])
+    for (i in 1:304){
+      final_list[[lis[i]]] <- lis2 [i]
     }
     return(final_list)
   }
@@ -57,8 +57,8 @@ ui <- dashboardPage(
     #get species name
     textInput("species_name", "Species name", "Caretta caretta"),
     selectInput("rank", "Taxonomic rank", 
-                choices = list("Species" = 1,"Genus" = 2, "Family" = 3,"Order" = 4, 
-                               "Class" = 5, "Phylum" = 6, "Kingdom" = 7), selected = 1),
+                choices = list("Species" = "Species","Genus" = "Genus", "Family" = "Family","Order" = "Order", 
+                               "Class" = "Class", "Phylum" = "Phylum", "Kingdom" = "Kingdom"), selected = "Species"),
     
     #get login information
     textInput("gbif_username", "Gbif Username", "Ex: GbifUser1313"),
@@ -80,7 +80,7 @@ ui <- dashboardPage(
     checkboxInput("political_checkbox", label = "Input Geographical boundaries by country"),
     conditionalPanel(
       condition ="input.political_checkbox == true",
-      selectInput("political_boundary", "Country Name", choices = choice(4), selected = 280)
+      selectInput("political_boundary", "Country Name", choices = choice(4), selected = "US")
       ),
    
      #input date bounding information for gbif
@@ -209,7 +209,7 @@ server <- function(input, output) {
     }
     #filter by lat/long
     if (input$lat_long_check_box){
-      if (missing(input$Lat_low) || missing(input$Lat_high) || missing(input$Long_low) || missing(input$Long_high)){
+      if (is.null(input$Lat_low ) ||  is.null(input$Lat_high) ||  is.null(input$Long_low) || is.null(input$Long_high)){
         low_lat <- -90
         high_lat <- 90
         low_long <- -180
