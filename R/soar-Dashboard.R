@@ -207,6 +207,12 @@ server <- function(input, output) {
       to_y <- substr(input$to_date, 1, 4)
       from_y <- substr(input$from_date, 1, 4)
     }
+    else{
+      to_m <- substr(Sys.Date(), 6,7)
+      from_m<- "1"
+      to_y <- substr(Sys.Date(), 1, 4)
+      from_y <- "1600"
+    }
     #filter by lat/long
     if (input$lat_long_check_box){
       if (is.null(input$Lat_low ) ||  is.null(input$Lat_high) ||  is.null(input$Long_low) || is.null(input$Long_high)){
@@ -222,6 +228,13 @@ server <- function(input, output) {
       high_long <- input$Long_high
     }
     }
+    else {
+      low_lat <- -90
+      high_lat <- 90
+      low_long <- -180
+      high_long <- 180
+    }
+    
     if (input$down_key_checkbox){
       continue = FALSE
       dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE) %>% occ_download_import()
@@ -229,6 +242,7 @@ server <- function(input, output) {
     }
     else{
       continue = TRUE
+      if (input$date_checkbox){
         res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
                            paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
                            paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
@@ -236,6 +250,16 @@ server <- function(input, output) {
                            paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
                            user = input$gbif_username, pwd = input$gbif_pass, 
                            email = input$gbif_email)
+      }
+      else{
+        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
+                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
+                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
+                           paste("month <=", to_m), 
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
+      }
     }
 #loops so that it checks every 30 seconds to see if meta$status is "SUCCEEDED" or "KILLED"
     while(continue){
