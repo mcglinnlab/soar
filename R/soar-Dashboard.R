@@ -222,80 +222,21 @@ server <- function(input, output) {
       high_long <- input$Long_high
     }
     }
-#empty fields cannot be set to NULL, this sees what data is added and runs the correct
-#request depending on what fields are full. It's really big
     if (input$down_key_checkbox){
       continue = FALSE
       dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE) %>% occ_download_import()
       return(dat)
     }
-    else if (input$lat_long_check_box){
-      continue = TRUE
-      if (input$date_checkbox & input$political_checkbox){
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), paste("country =", country), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-      else if (input$date_checkbox){
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-      else if (input$political_checkbox){
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("country =", country), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-      else{
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-    }
-    else if (input$date_checkbox){
-      continue = TRUE
-      if (input$political_checkbox){
-        res = occ_download(paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), paste("country =", country), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-      else{
-        res = occ_download(paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-    }
-    else if (input$political_checkbox){
-      continue = TRUE
-      res = occ_download(paste("country =", country), 
-                         paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                         user = input$gbif_username, pwd = input$gbif_pass, 
-                         email = input$gbif_email)
-    }
     else{
       continue = TRUE
-      res = occ_download(paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                         user = input$gbif_username, pwd = input$gbif_pass, 
-                         email = input$gbif_email)
+        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
+                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
+                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
+                           paste("month <=", to_m), paste("country =", country), 
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
     }
-    
 #loops so that it checks every 30 seconds to see if meta$status is "SUCCEEDED" or "KILLED"
     while(continue){
       meta = occ_download_meta(res)
