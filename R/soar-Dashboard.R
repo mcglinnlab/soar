@@ -8,6 +8,7 @@ library(CoordinateCleaner)
 
 choice <- function(input_num) {
   Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
+  Country_codes <- read.csv("countryCodes.csv", as.is = TRUE)
   # Note to Self -- [row,col] cols: colName, MetaData, Minimal, Default, Custom
   #Sets lis to a list of the row names selected and sets selected to a list of values in the column
   if (input_num ==1){
@@ -18,9 +19,19 @@ choice <- function(input_num) {
     lis<-Gbif_fields$Column.Name[Gbif_fields$Default == 1]
     selected <- Gbif_fields$Default
   }
-  else {
+  else if (input_num == 3){
     lis<-Gbif_fields$Column.Name[Gbif_fields$Custom == 1]
     selected <- Gbif_fields$Custom
+  }
+  else {
+    lis <- Country_codes$CountryCodes
+    selected <- Country_codes$CountryCodes
+    lis2 <- Country_codes$CountryCodes
+    final_list <- list()
+    for (i in 1:304){
+      final_list[[lis[i]]] <- lis2 [i]
+    }
+    return(final_list)
   }
   lis2 <- c()
   #Sets lis2 to a list of each row number that corresponds to a value in lis
@@ -45,7 +56,9 @@ ui <- dashboardPage(
   dashboardSidebar(
     #get species name
     textInput("species_name", "Species name", "Caretta caretta"),
-    textInput("rank", "Taxonomic rank", "species"),
+    selectInput("rank", "Taxonomic rank", 
+                choices = list("Species" = "Species","Genus" = "Genus", "Family" = "Family","Order" = "Order", 
+                               "Class" = "Class", "Phylum" = "Phylum", "Kingdom" = "Kingdom"), selected = "Species"),
     
     #get login information
     textInput("gbif_username", "Gbif Username", "Ex: GbifUser1313"),
@@ -57,25 +70,25 @@ ui <- dashboardPage(
                   value = FALSE),
     conditionalPanel (
       condition = "input.lat_long_check_box == true",
-      textInput("Lat_low", "Latitude lower range", "-90"),
-      textInput("Lat_high", "Latitude upper range", "90"),
-      textInput("Long_low", "Longitude lower range", "-180"),
-      textInput("Long_high", "Longitude upper range", "180")
+      numericInput("Lat_low", "Latitude lower range", "-90", min = -90, max = 90),
+      numericInput("Lat_high", "Latitude upper range", "90", min = -90, max = 90),
+      numericInput("Long_low", "Longitude lower range", "-180", min = -180, max = 180),
+      numericInput("Long_high", "Longitude upper range", "180", min = -180, max = 180)
     ),
     
     #input bounding box with political boundaries
     checkboxInput("political_checkbox", label = "Input Geographical boundaries by country"),
     conditionalPanel(
       condition ="input.political_checkbox == true",
-      textInput("political_boundary", "Country Name", "Country Code")
+      selectInput("political_boundary", "Country Name", choices = choice(4), selected = "US")
       ),
    
      #input date bounding information for gbif
     checkboxInput("date_checkbox", label = "Sort by date", value = FALSE),
     conditionalPanel (
       condition = "input.date_checkbox == true",
-      textInput("from_date", "Show results from this month:", "mm/yyyy"),
-      textInput("to_date", "to this month:", "mm/yyyy")
+      dateInput("from_date", "Show results from this date:"),
+      dateInput("to_date", "to this date:")
     ),
   
     #input specific download key
@@ -189,92 +202,65 @@ server <- function(input, output) {
     if (input$political_checkbox){ country <- input$political_boundary}
     #filter by date
     if (input$date_checkbox){
-      to_m <- substr(input$to_date, 1,2)
-      from_m<- substr(input$from_date, 1,2)
-      to_y <- substr(input$to_date, 4, 7)
-      from_y <- substr(input$from_date, 4, 7)
+      to_m <- substr(input$to_date, 6,7)
+      from_m<- substr(input$from_date, 6,7)
+      to_y <- substr(input$to_date, 1, 4)
+      from_y <- substr(input$from_date, 1, 4)
+    }
+    else{
+      to_m <- substr(Sys.Date(), 6,7)
+      from_m<- "1"
+      to_y <- substr(Sys.Date(), 1, 4)
+      from_y <- "1600"
     }
     #filter by lat/long
     if (input$lat_long_check_box){
+      if (is.null(input$Lat_low ) ||  is.null(input$Lat_high) ||  is.null(input$Long_low) || is.null(input$Long_high)){
+        low_lat <- -90
+        high_lat <- 90
+        low_long <- -180
+        high_long <- 180
+      }
+      else{
       low_lat <- input$Lat_low
       high_lat <- input$Lat_high
       low_long <- input$Long_low
       high_long <- input$Long_high
     }
-#empty fields cannot be set to NULL, this sees what data is added and runs the correct
-#request depending on what fields are full. It's really big
+    }
+    else {
+      low_lat <- -90
+      high_lat <- 90
+      low_long <- -180
+      high_long <- 180
+    }
+    
     if (input$down_key_checkbox){
       continue = FALSE
       dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE) %>% occ_download_import()
       return(dat)
     }
-    else if (input$lat_long_check_box){
-      continue = TRUE
-      if (input$date_checkbox & input$political_checkbox){
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), paste("country =", country), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-      else if (input$date_checkbox){
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-      else if (input$political_checkbox){
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("country =", country), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-      else{
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-    }
-    else if (input$date_checkbox){
-      continue = TRUE
-      if (input$political_checkbox){
-        res = occ_download(paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), paste("country =", country), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-      else{
-        res = occ_download(paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                           user = input$gbif_username, pwd = input$gbif_pass, 
-                           email = input$gbif_email)
-      }
-    }
-    else if (input$political_checkbox){
-      continue = TRUE
-      res = occ_download(paste("country =", country), 
-                         paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                         user = input$gbif_username, pwd = input$gbif_pass, 
-                         email = input$gbif_email)
-    }
     else{
       continue = TRUE
-      res = occ_download(paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
-                         user = input$gbif_username, pwd = input$gbif_pass, 
-                         email = input$gbif_email)
+      if (input$date_checkbox){
+        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
+                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
+                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
+                           paste("month <=", to_m), paste("country =", country), 
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
+      }
+      else{
+        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
+                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
+                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
+                           paste("month <=", to_m), 
+                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+                           user = input$gbif_username, pwd = input$gbif_pass, 
+                           email = input$gbif_email)
+      }
     }
-    
 #loops so that it checks every 30 seconds to see if meta$status is "SUCCEEDED" or "KILLED"
     while(continue){
       meta = occ_download_meta(res)
