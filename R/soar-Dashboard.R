@@ -5,6 +5,7 @@ library(leaflet)
 library(rgbif)
 library(shinycssloaders)
 library(CoordinateCleaner)
+library(rnaturalearth)
 
 choice <- function(input_num) {
   Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
@@ -174,9 +175,9 @@ ui <- dashboardPage(
                #provide these (do not require as input):
                 #capitals.ref
                 #centroids.ref
-                #country.ref
+                #country.ref -- Works fine with rnaturalearth added in
                 #inst.ref
-                #seas.ref
+                #seas.ref -- Works fine on it's own
                 #urban.ref
                selectInput("value_input", "What kind of output would you like?", 
                            choices = list("Spatial Valid - A separate document with what data was flagged and for what test" = 1, "Clean - the flagged data is automatically removed" = 2), selected = 1),
