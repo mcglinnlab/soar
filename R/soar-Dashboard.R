@@ -185,9 +185,9 @@ ui <- dashboardPage(
                ),
       tabPanel("Detect Bias",
                h4("Temporal Bias", h5("Information can become less accurate depending on when it was collected. These percentages are for refrence in determining the accuracy of your dataset."),
-                  h6("% of the dataset was collected before 1950"),
-                  h6("% of the dataset was collected before 1970"),
-                  h6("% of the dataset was collected before 1990")),
+                  h6(paste(temporal_bias()[3],"% of the dataset was collected before 1950")),
+                  h6(paste(temporal_bias()[2],"% of the dataset was collected before 1970")),
+                  h6(paste(temporal_bias()[1],"% of the dataset was collected before 1990"))),
                h4("Spatial Bias"),
                h4("Taxonomic Bias")),
       tabPanel("Download Cleaned Data", 
@@ -329,7 +329,8 @@ server <- function(input, output) {
     )
     return(dat)
   })
-  
+ 
+  #Help determine meaningful input for clean_info 
   cen_detail_val <- function(){
     if (input$cen_detail == 1){
       return("country")
@@ -361,6 +362,34 @@ server <- function(input, output) {
     }
   }
   
+  #Determine percentages of the dataset that was collected prior to 1990,1970, and 1950
+  temporal_bias <- function(){
+    dat = gbif_data()
+    #narrow dat down so that it only contains the years
+    dat = dat[103]
+    pre1990 = 0
+    pre1970 = 0
+    pre1950 = 0
+    result <- list()
+    for (i in 1:length(row.names(dat))) {
+      if (dat[i,] < 1950){
+        pre1950 = pre1950 + 1
+        pre1970 = pre1970 + 1
+        pre1990 = pre1990 + 1
+      }
+      else if (dat[i,] < 1970) {
+        pre1970 = pre1970 + 1
+        pre1990 = pre1990 + 1
+      }
+      else if (dat[i,] < 1990) {
+        pre1990 = pre1990 + 1
+      }
+    }
+    result[1] = (pre1990/(length(row.names(dat))))*100
+    result[2] = (pre1970/(length(row.names(dat))))*100
+    result[3] = (pre1950/(length(row.names(dat))))*100
+    return(result)
+  }
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
 #Makes A Downloadable Table for only the columns selected
