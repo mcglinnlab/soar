@@ -140,7 +140,6 @@ ui <- dashboardPage(
                checkboxInput("bio_prox", label = "Proximity to biodiversity institutions", value = FALSE),
                checkboxInput("out_box", label = "Outliers", value = FALSE),
                checkboxInput("sea_box", label = "Locaton relative to the oceans (check if records include only terrestrial organisms)", value = FALSE),
-               checkboxInput("urb_prox", label = "Proximity to urban areas", value = FALSE),
                checkboxInput("equ_zero_zero", label = "Equal latitude and longitude, plain zeros, and proximity to point 0/0", value = FALSE),
               
                
@@ -173,24 +172,29 @@ ui <- dashboardPage(
                                 numericInput("zero_rad", "Radius around 0/0 (degrees)", 0.5)
                ),
                #provide these (do not require as input):
-                #capitals.ref
-                #centroids.ref
+                #capitals.ref -- works fine on its own
+                #centroids.ref -- works fine on its own
                 #country.ref -- Works fine with rnaturalearth added in
-                #inst.ref
-                #seas.ref -- Works fine on it's own
+                #inst.ref -- works fine on its own
+                #seas.ref -- Works fine on its own
                 #urban.ref
                selectInput("value_input", "What kind of output would you like?", 
                            choices = list("Spatial Valid - A separate document with what data was flagged and for what test" = 1, "Clean - the flagged data is automatically removed" = 2), selected = 1),
                #verbose = False
               actionButton("do_clean", "Submit")
                ),
-      tabPanel("Detect Bias"),
+      tabPanel("Detect Bias",
+               h4("Temporal Bias", h5("Information can become less accurate depending on when it was collected. These percentages are for refrence in determining the accuracy of your dataset."),
+                  h6("% of the dataset was collected before 1950"),
+                  h6("% of the dataset was collected before 1970"),
+                  h6("% of the dataset was collected before 1990")),
+               h4("Spatial Bias"),
+               h4("Taxonomic Bias")),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
                downloadButton('download_clean_data', label = "Download Table"),
                withSpinner(DT::dataTableOutput("clean_data")))
     )
-    
   )
 )
 #server- logic of the app
@@ -301,7 +305,7 @@ server <- function(input, output) {
                            institutions = input$bio_prox,
                            outliers = input$out_box,
                            seas = input$sea_box,
-                           urban = input$urb_prox,
+                           urban = FALSE,
                            zeros = input$equ_zero_zero,
                            capitals.rad = input$cap_rad,
                            centroids.rad = input$cen_rad,
