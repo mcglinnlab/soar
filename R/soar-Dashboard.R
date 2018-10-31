@@ -8,8 +8,8 @@ library(CoordinateCleaner)
 library(rnaturalearth)
 
 choice <- function(input_num) {
-  Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
-  Country_codes <- read.csv("countryCodes.csv", as.is = TRUE)
+  Gbif_fields <- read.csv("../data/gbif_fields.csv", as.is = TRUE)
+  Country_codes <- read.csv("../data/countryCodes.csv", as.is = TRUE)
   # Note to Self -- [row,col] cols: colName, MetaData, Minimal, Default, Custom
   #Sets lis to a list of the row names selected and sets selected to a list of values in the column
   if (input_num ==1){
@@ -185,9 +185,9 @@ ui <- dashboardPage(
                ),
       tabPanel("Detect Bias",
                h4("Temporal Bias", h5("Information can become less accurate depending on when it was collected. These percentages are for refrence in determining the accuracy of your dataset."),
-                  h6(paste(temporal_bias()[3],"% of the dataset was collected before 1950")),
-                  h6(paste(temporal_bias()[2],"% of the dataset was collected before 1970")),
-                  h6(paste(temporal_bias()[1],"% of the dataset was collected before 1990"))),
+                  h6(textOutput("pre1950"),"% of the dataset was collected before 1950"),
+                  h6(textOutput("pre1970"),"% of the dataset was collected before 1970"),
+                  h6(textOutput("pre1990"),"% of the dataset was collected before 1990")),
                h4("Spatial Bias"),
                h4("Taxonomic Bias")),
       tabPanel("Download Cleaned Data", 
@@ -363,33 +363,48 @@ server <- function(input, output) {
   }
   
   #Determine percentages of the dataset that was collected prior to 1990,1970, and 1950
-  temporal_bias <- function(){
+  temporal_bias <- function(num){
     dat = gbif_data()
     #narrow dat down so that it only contains the years
-    dat = dat[103]
+    year = dat$year
     pre1990 = 0
     pre1970 = 0
     pre1950 = 0
-    result <- list()
-    for (i in 1:length(row.names(dat))) {
-      if (dat[i,] < 1950){
+    for (i in seq_along(year)) {
+      if (year[i] < 1950){
         pre1950 = pre1950 + 1
         pre1970 = pre1970 + 1
         pre1990 = pre1990 + 1
       }
-      else if (dat[i,] < 1970) {
+      else if (year[i] < 1970) {
         pre1970 = pre1970 + 1
         pre1990 = pre1990 + 1
       }
-      else if (dat[i,] < 1990) {
+      else if (year[i] < 1990) {
         pre1990 = pre1990 + 1
       }
     }
-    result[1] = (pre1990/(length(row.names(dat))))*100
-    result[2] = (pre1970/(length(row.names(dat))))*100
-    result[3] = (pre1950/(length(row.names(dat))))*100
-    return(result)
+    
+    if (num == 1){
+    return((pre1990/(length(year)))*100)
+    }
+    else if (num == 2) {
+    (pre1970/(length(year)))*100
+    }
+    else {
+    (pre1950/(length(year)))*100
+    }
   }
+  #actually pass back the data
+  output$pre1950 <- renderText(
+    temporal_bias(3)
+  )
+  output$pre1970 <- renderText(
+    return(temporal_bias(2))
+  )
+  output$pre1990 <- renderText(
+    return(temporal_bias(1))
+  )
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
 #Makes A Downloadable Table for only the columns selected
