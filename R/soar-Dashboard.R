@@ -406,6 +406,24 @@ server <- function(input, output) {
     return(temporal_bias(1))
   )
   
+  #Currenlty just gets the data for the graph ready
+  #will eventually be an output for the data
+  temporal_bias_graph <-function(){
+    dat <- gbif_data()$year
+    datYear <- list()
+    years <- list()
+    
+    for (i in 1:(2018-1599)) {datYear[i] = 0}
+    for (i in 1:(2018-1599)) {years[i] = i + 1599}
+    for (i in 1:length(dat)){
+      curr = as.numeric(dat[i])
+      datYear[curr - 1599] = (as.numeric(datYear[curr-1599])) + 1
+    }
+    #years = x
+    #datYear = y
+    #do a line graphg (type = "l")
+  }
+  
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
 #Makes A Downloadable Table for only the columns selected
   download_info <- function(){
