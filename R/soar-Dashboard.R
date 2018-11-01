@@ -188,6 +188,12 @@ ui <- dashboardPage(
                   h6(textOutput("pre1950"),"% of the dataset was collected before 1950"),
                   h6(textOutput("pre1970"),"% of the dataset was collected before 1970"),
                   h6(textOutput("pre1990"),"% of the dataset was collected before 1990")),
+                  h5(), #For a new line
+                  h5("The plots below shows the number of observtions in the current dataset per year compared with the 
+                     number of observations reported to github in total per year. Take this into consideration when comparing
+                     the number of observations from one year to another. The black line is the fetched dataset while the red 
+                     line is the total number of observations for that year.", plotOutput("temporal_bias_plot")),
+                  h5("Insert the other plot here"),
                h4("Spatial Bias"),
                h4("Taxonomic Bias")),
       tabPanel("Download Cleaned Data", 
@@ -408,7 +414,7 @@ server <- function(input, output) {
   
   #Currenlty just gets the data for the graph ready
   #will eventually be an output for the data
-  temporal_bias_graph <-function(){
+  temporal_bias_data <-function(num){
     dat <- gbif_data()$year
     datYear <- list()
     years <- list()
@@ -419,10 +425,25 @@ server <- function(input, output) {
       curr = as.numeric(dat[i])
       datYear[curr - 1599] = (as.numeric(datYear[curr-1599])) + 1
     }
+    if (num == 1) {return(years)}
+    if (num == 2) {return(datYear)}
     #years = x
     #datYear = y
     #do a line graphg (type = "l")
   }
+  
+  output$temporal_bias_plot <- renderPlot({
+    Year <-temporal_bias_data(1)
+    Number_Of_Observations <-temporal_bias_data(2)
+    plot(Year, Number_Of_Observations,type = "l")
+    #Add in the total Gbif Data here using lines(color = "red")
+  })
+  
+  output$temporal_bias_comparison_plot <- renderPlot({
+    Species_Of_Interest_Observations_Per_Year <- temporal_bias_data(2);
+    Total_Observations_Per_Year <- 0; #replace later
+    plot(Species_Of_Interest_Observations_Per_Year, Total_Observations_Per_Year, type = "l" )
+  })
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
 #Makes A Downloadable Table for only the columns selected
