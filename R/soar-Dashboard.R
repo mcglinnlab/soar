@@ -190,11 +190,18 @@ ui <- dashboardPage(
                   h6(textOutput("pre1990"),"% of the dataset was collected before 1990")),
                   h5(), #For a new line
                   h5("The plots below shows the number of observtions in the current dataset per year compared with the 
-                     number of observations reported to github in total per year. Take this into consideration when comparing
+                     number of observations reported to Gbif in total per year. Take this into consideration when comparing
                      the number of observations from one year to another. The black line is the fetched dataset while the red 
                      line is the total number of observations for that year.", plotOutput("temporal_bias_plot")),
-                  h5("Insert the other plot here"),
+                  h5(plotOutput("temporal_bias_comparison_plot") ),
                h4("Spatial Bias"),
+                  h5("The map below shows the occurrences in the selected dataset overlaid with all 
+                     occurrences in the Gbif database. Take this into consideration when 
+                     comparing how many occurrences are reported in one area rather than another."),
+                  h5("The plot below shows the correlation between the number of observations
+                     per map pixel for the selected dataset and the number of observations per
+                     map pixel for the overall Gbif dataset. Take this into consideration when 
+                     comparing how many occurrences are reported in one area rather than another."),
                h4("Taxonomic Bias")),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
@@ -441,7 +448,7 @@ server <- function(input, output) {
   
   output$temporal_bias_comparison_plot <- renderPlot({
     Species_Of_Interest_Observations_Per_Year <- temporal_bias_data(2);
-    Total_Observations_Per_Year <- 0; #replace later
+    Total_Observations_Per_Year <- temporal_bias_data(2); #REPLACE LATER
     plot(Species_Of_Interest_Observations_Per_Year, Total_Observations_Per_Year, type = "l" )
   })
   
