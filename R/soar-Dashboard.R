@@ -260,7 +260,7 @@ server <- function(input, output) {
     }
     else{
       continue = TRUE
-      if (input$date_checkbox){
+      if (input$political_checkbox){
         res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
                            paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
                            paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
@@ -423,6 +423,19 @@ server <- function(input, output) {
   #will eventually be an output for the data
   temporal_bias_data <-function(num){
     dat <- gbif_data()$year
+    #FILL IN FOR FULL DATA LATER RATHER THAN DOWNLOADING IT EVERY TIME
+    if (num == 3){
+    fullDat <- occ_download_get(key = "0019554-181003121212138", overwrite = TRUE) %>% occ_download_import()
+    fullDat <- fullDat$year
+    fullDatYear <- list()
+    
+    for (i in 1:(2018-1599)) {fullDatYear[i] = 0}
+    
+    for (i in 1:length(fullDat)){
+      curr = as.numeric(fullDat[i])
+      fullDatYear[curr - 1599] = (as.numeric(fullDatYear[curr-1599])) + 1
+    }
+    }
     datYear <- list()
     years <- list()
     
@@ -432,23 +445,23 @@ server <- function(input, output) {
       curr = as.numeric(dat[i])
       datYear[curr - 1599] = (as.numeric(datYear[curr-1599])) + 1
     }
+
     if (num == 1) {return(years)}
     if (num == 2) {return(datYear)}
-    #years = x
-    #datYear = y
-    #do a line graphg (type = "l")
+    if (num == 3) {return(fullDatYear)}
   }
   
   output$temporal_bias_plot <- renderPlot({
     Year <-temporal_bias_data(1)
     Number_Of_Observations <-temporal_bias_data(2)
     plot(Year, Number_Of_Observations,type = "l")
-    #Add in the total Gbif Data here using lines(color = "red")
+    lines(Year, temporal_bias_data(3), col = "green")
   })
   
   output$temporal_bias_comparison_plot <- renderPlot({
     Species_Of_Interest_Observations_Per_Year <- temporal_bias_data(2);
-    Total_Observations_Per_Year <- temporal_bias_data(2); #REPLACE LATER
+    Total_Observations_Per_Year <- temporal_bias_data(3);
+    #DOESN'T LOOK RIGHT? VHAT?
     plot(Species_Of_Interest_Observations_Per_Year, Total_Observations_Per_Year, type = "l" )
   })
   
