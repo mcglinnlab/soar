@@ -423,9 +423,12 @@ server <- function(input, output) {
   #will eventually be an output for the data
   temporal_bias_data <-function(num){
     dat <- gbif_data()$year
-    #FILL IN FOR FULL DATA LATER RATHER THAN DOWNLOADING IT EVERY TIME
+    #FILL IN FOR FULL DATA LATER
     if (num == 3){
-    fullDat <- occ_download_get(key = "0019554-181003121212138", overwrite = TRUE) %>% occ_download_import()
+      #Doing this rather than the whole download sequence allows it to read the 
+      #file (of the same name as the key) rather than downloading the dataset again.
+      #This also speeds up the code significantly
+    fullDat <- occ_download_import(key = "0019554-181003121212138") 
     fullDat <- fullDat$year
     fullDatYear <- list()
     
@@ -453,16 +456,16 @@ server <- function(input, output) {
   
   output$temporal_bias_plot <- renderPlot({
     Year <-temporal_bias_data(1)
-    Number_Of_Observations <-temporal_bias_data(2)
+    Number_Of_Observations <-temporal_bias_data(3)
     plot(Year, Number_Of_Observations,type = "l")
-    lines(Year, temporal_bias_data(3), col = "green")
+    lines(Year, temporal_bias_data(2), col = "green")
   })
   
   output$temporal_bias_comparison_plot <- renderPlot({
     Species_Of_Interest_Observations_Per_Year <- temporal_bias_data(2);
     Total_Observations_Per_Year <- temporal_bias_data(3);
-    #DOESN'T LOOK RIGHT? VHAT?
-    plot(Species_Of_Interest_Observations_Per_Year, Total_Observations_Per_Year, type = "l" )
+    #DOESN'T LOOK RIGHT -- ( Was due to the very small dataset in use)
+    plot(Total_Observations_Per_Year, Species_Of_Interest_Observations_Per_Year, type = "l" )
   })
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
