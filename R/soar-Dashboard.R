@@ -192,12 +192,13 @@ ui <- dashboardPage(
                   h5("The plots below shows the number of observtions in the current dataset per year compared with the 
                      number of observations reported to Gbif in total per year. Take this into consideration when comparing
                      the number of observations from one year to another. The black line is the fetched dataset while the red 
-                     line is the total number of observations for that year.", plotOutput("temporal_bias_plot")),
-                  h5(plotOutput("temporal_bias_comparison_plot") ),
+                     line is the total number of observations for that year.", withSpinner(plotOutput("temporal_bias_plot"))),
+                  h5(withSpinner(plotOutput("temporal_bias_comparison_plot") )),
                h4("Spatial Bias"),
                   h5("The map below shows the occurrences in the selected dataset overlaid with all 
                      occurrences in the Gbif database. Take this into consideration when 
-                     comparing how many occurrences are reported in one area rather than another."),
+                     comparing how many occurrences are reported in one area rather than another.",
+                     withSpinner(leafletOutput("spatial_bias_map")) ),
                   h5("The plot below shows the correlation between the number of observations
                      per map pixel for the selected dataset and the number of observations per
                      map pixel for the overall Gbif dataset. Take this into consideration when 
@@ -439,6 +440,13 @@ server <- function(input, output) {
       fullDatYear[curr - 1599] = (as.numeric(fullDatYear[curr-1599])) + 1
     }
     }
+    if (num == 4){
+      #FILL IN FOR FULL DATA LATER
+      #Doing this rather than the whole download sequence allows it to read the 
+      #file (of the same name as the key) rather than downloading the dataset again.
+      #This also speeds up the code significantly
+      fullDat <- occ_download_import(key = "0019554-181003121212138") 
+    }
     datYear <- list()
     years <- list()
     
@@ -452,6 +460,7 @@ server <- function(input, output) {
     if (num == 1) {return(years)}
     if (num == 2) {return(datYear)}
     if (num == 3) {return(fullDatYear)}
+    if (num == 4) {return(fullDat)}
   }
   
   output$temporal_bias_plot <- renderPlot({
@@ -466,6 +475,22 @@ server <- function(input, output) {
     Total_Observations_Per_Year <- temporal_bias_data(3);
     #DOESN'T LOOK RIGHT -- ( Was due to the very small dataset in use)
     plot(Total_Observations_Per_Year, Species_Of_Interest_Observations_Per_Year, type = "l" )
+  })
+  
+  #Output a plot that shows the range of where all Gbif data is from Vs. where 
+  #only the selected data is from
+  output$spatial_bias_map <- renderLeaflet({
+    #Below is a copy of the first map, full dataset points need to be added first
+    #Full Data -> temporal_bias_data(4)
+    #Sample Data -> gbif_data()
+    leaflet(gbif_data()) %>%
+      addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
+      
+      addCircleMarkers(lng = ~ decimalLongitude, lat = ~ decimalLatitude,
+                       radius = 3,
+                       color = 'red',
+                       stroke = FALSE, fillOpacity = 0.5
+      )
   })
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
