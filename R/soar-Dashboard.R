@@ -191,12 +191,12 @@ ui <- dashboardPage(
                   h5(), #For a new line
                   h5("The plots below shows the number of observtions in the current dataset per year compared with the 
                      number of observations reported to Gbif in total per year. Take this into consideration when comparing
-                     the number of observations from one year to another. The black line is the fetched dataset while the red 
+                     the number of observations from one year to another. The red line is the fetched dataset while the black 
                      line is the total number of observations for that year.", withSpinner(plotOutput("temporal_bias_plot"))),
                   h5(withSpinner(plotOutput("temporal_bias_comparison_plot") )),
                h4("Spatial Bias"),
-                  h5("The map below shows the occurrences in the selected dataset overlaid with all 
-                     occurrences in the Gbif database. Take this into consideration when 
+                  h5("The map below shows the occurrences in the selected dataset (black) overlaid with all 
+                     occurrences in the Gbif database (red). Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another.",
                      withSpinner(leafletOutput("spatial_bias_map")) ),
                   h5("The plot below shows the correlation between the number of observations
@@ -466,8 +466,8 @@ server <- function(input, output) {
   output$temporal_bias_plot <- renderPlot({
     Year <-temporal_bias_data(1)
     Number_Of_Observations <-temporal_bias_data(3)
-    plot(Year, Number_Of_Observations,type = "l")
-    lines(Year, temporal_bias_data(2), col = "green")
+    plot(Year, Number_Of_Observations, type = "l")
+    lines(Year, temporal_bias_data(2), color = "red")
   })
   
   output$temporal_bias_comparison_plot <- renderPlot({
@@ -480,17 +480,21 @@ server <- function(input, output) {
   #Output a plot that shows the range of where all Gbif data is from Vs. where 
   #only the selected data is from
   output$spatial_bias_map <- renderLeaflet({
-    #Below is a copy of the first map, full dataset points need to be added first
-    #Full Data -> temporal_bias_data(4)
-    #Sample Data -> gbif_data()
-    leaflet(gbif_data()) %>%
+    #Full Data -> temporal_bias_data(4) -- red
+    #Sample Data -> gbif_data() -- black
+    leaflet(temporal_bias_data(4)) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       
       addCircleMarkers(lng = ~ decimalLongitude, lat = ~ decimalLatitude,
                        radius = 3,
-                       color = 'red',
+                       color = 'black',
                        stroke = FALSE, fillOpacity = 0.5
-      )
+      ) %>%
+      addCircleMarkers(data = gbif_data(), lng = ~ decimalLongitude, lat = ~ decimalLatitude,
+                       radius = 3,
+                       color = "red",
+                       stroke = FALSE, 
+                       fillOpacity = 0.5)
   })
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
