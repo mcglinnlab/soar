@@ -3,6 +3,7 @@ library(ggplot2)
 library(DT)
 library(leaflet)
 library(rgbif)
+library(rgdal)
 library(shinycssloaders)
 library(CoordinateCleaner)
 library(rnaturalearth)
@@ -496,6 +497,25 @@ server <- function(input, output) {
                        stroke = FALSE, 
                        fillOpacity = 0.5)
   })
+  
+  #Create a rasta file that can be used in a comparison graph for how many 
+  #results are in a cell per gbif vs. how many results are in a cell for 
+  #the collected dataset
+  spatial_bias_raster <- function(num){
+    #create and return the raster files depending on input
+    # 1 = downloaded dataset
+    # 2 = Full dataset
+    if (num == 1){
+      dat = gbif_data();
+      crds = cbind(dat$data$decimalLongitude, dat$data$decimalLatitude)
+      crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
+    }
+    else {
+      dat = temporal_bias_data(4);
+      crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
+      crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
+    }
+  }
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
 #Makes A Downloadable Table for only the columns selected
