@@ -509,11 +509,19 @@ server <- function(input, output) {
       dat = gbif_data();
       crds = cbind(dat$data$decimalLongitude, dat$data$decimalLatitude)
       crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
+      r = raster(nrows=116, ncols=364, xmn=-20037.51, xmx=20002.49, ymn=-6396.115,
+                 ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
+      crds_cea = spTransform(crds_sp, CRSobj = CRS(proj4string(r)))
+      ct = rasterize(crds_cea, r, fun='count')
     }
     else {
       dat = temporal_bias_data(4);
       crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
       crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
+      r = raster(nrows=116, ncols=364, xmn=-20037.51, xmx=20002.49, ymn=-6396.115,
+                 ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
+      crds_cea = spTransform(crds_sp, CRSobj = CRS(proj4string(r)))
+      ct = rasterize(crds_cea, r, fun='count')
     }
   }
   
