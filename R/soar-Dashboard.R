@@ -203,8 +203,7 @@ ui <- dashboardPage(
                   h5("The plot below shows the correlation between the number of observations
                      per map pixel for the selected dataset and the number of observations per
                      map pixel for the overall Gbif dataset. Take this into consideration when 
-                     comparing how many occurrences are reported in one area rather than another."),
-               h4("Taxonomic Bias")),
+                     comparing how many occurrences are reported in one area rather than another.")),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
                downloadButton('download_clean_data', label = "Download Table"),
@@ -468,14 +467,14 @@ server <- function(input, output) {
     Year <-temporal_bias_data(1)
     Number_Of_Observations <-temporal_bias_data(3)
     plot(Year, Number_Of_Observations, type = "l")
-    lines(Year, temporal_bias_data(2), color = "red")
+    lines(Year, temporal_bias_data(2), col = "red")
   })
   
   output$temporal_bias_comparison_plot <- renderPlot({
     Species_Of_Interest_Observations_Per_Year <- temporal_bias_data(2);
     Total_Observations_Per_Year <- temporal_bias_data(3);
     #DOESN'T LOOK RIGHT -- ( Was due to the very small dataset in use)
-    plot(Total_Observations_Per_Year, Species_Of_Interest_Observations_Per_Year, type = "l" )
+    plot(Total_Observations_Per_Year, Species_Of_Interest_Observations_Per_Year)
   })
   
   #Output a plot that shows the range of where all Gbif data is from Vs. where 
@@ -507,7 +506,7 @@ server <- function(input, output) {
     # 2 = Full dataset
     if (num == 1){
       dat = gbif_data();
-      crds = cbind(dat$data$decimalLongitude, dat$data$decimalLatitude)
+      crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
       crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
       r = raster(nrows=116, ncols=364, xmn=-20037.51, xmx=20002.49, ymn=-6396.115,
                  ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
