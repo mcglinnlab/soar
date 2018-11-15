@@ -3,7 +3,7 @@ library(ggplot2)
 library(DT)
 library(leaflet)
 library(rgbif)
-library(rgdal)
+library(raster)
 library(shinycssloaders)
 library(CoordinateCleaner)
 library(rnaturalearth)
@@ -71,7 +71,7 @@ ui <- dashboardPage(
     checkboxInput("lat_long_check_box", label = "Input Geographical Boundaries with Latitude and Longitude", 
                   value = FALSE),
     conditionalPanel (
-      condition = "input.lat_long_check_box == true",
+      condition = "input.lat_long_check_box == true && input.input_file_checkbox == false && input.down_key_checkbox == false",
       numericInput("Lat_low", "Latitude lower range", "-90", min = -90, max = 90),
       numericInput("Lat_high", "Latitude upper range", "90", min = -90, max = 90),
       numericInput("Long_low", "Longitude lower range", "-180", min = -180, max = 180),
@@ -81,14 +81,14 @@ ui <- dashboardPage(
     #input bounding box with political boundaries
     checkboxInput("political_checkbox", label = "Input Geographical boundaries by country"),
     conditionalPanel(
-      condition ="input.political_checkbox == true",
+      condition ="input.political_checkbox == true && input.input_file_checkbox == false && input.down_key_checkbox == false",
       selectInput("political_boundary", "Country Name", choices = choice(4), selected = "US")
       ),
    
      #input date bounding information for gbif
     checkboxInput("date_checkbox", label = "Sort by date", value = FALSE),
     conditionalPanel (
-      condition = "input.date_checkbox == true",
+      condition = "input.date_checkbox == true && input.input_file_checkbox == false && input.down_key_checkbox == false",
       dateInput("from_date", "Show results from this date:"),
       dateInput("to_date", "to this date:")
     ),
@@ -96,8 +96,15 @@ ui <- dashboardPage(
     #input specific download key
     checkboxInput("down_key_checkbox", label = "Specify Download Key", value = FALSE),
     conditionalPanel (
-      condition = "input.down_key_checkbox == true",
+      condition = "input.down_key_checkbox == true && input.input_file_checkbox == false",
       textInput("down_key", "Download Key:", "" )
+    ),
+    
+    #input file name to import
+    checkboxInput("input_file_checkbox", label = "Import Gbif Data File", value = FALSE),
+    conditionalPanel(
+      condition = "input.input_file_checkbox == true",
+      textInput("file_name", "Gbif Data File(format: file_name.zip):" ,"")
     ),
       
     actionButton("do", "Submit")
@@ -203,7 +210,8 @@ ui <- dashboardPage(
                   h5("The plot below shows the correlation between the number of observations
                      per map pixel for the selected dataset and the number of observations per
                      map pixel for the overall Gbif dataset. Take this into consideration when 
-                     comparing how many occurrences are reported in one area rather than another.")),
+                     comparing how many occurrences are reported in one area rather than another.",
+                     withSpinner(plotOutput("spatial_bias_plot")))),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
                downloadButton('download_clean_data', label = "Download Table"),
@@ -215,6 +223,10 @@ ui <- dashboardPage(
 server <- function(input, output) {
   
   gbif_data <- eventReactive(input$do, {
+    #import file
+    if (input$input_file_checkbox){
+    data_file_name = input$file_name
+    }
     #filter by name
     sp_key <- name_suggest(q =input$species_name, rank = input$rank)$key[1]
     #filter by country
@@ -254,7 +266,12 @@ server <- function(input, output) {
       high_long <- 180
     }
     
-    if (input$down_key_checkbox){
+    if (input$input_file_checkbox) {
+      #Currently throws an error
+      #dat <- occ_download_import(data_file_name)
+      #return(dat)
+    }
+    else if (input$down_key_checkbox){
       continue = FALSE
       dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE) %>% occ_download_import()
       return(dat)
@@ -497,6 +514,12 @@ server <- function(input, output) {
                        fillOpacity = 0.5)
   })
   
+  output$spatial_bias_plot <- renderPlot({
+    Occurrences_of_species_of_interest_per_cell <- spatial_bias_raster(1)
+    Total_Gbif_Occurrencs_Per_Cell <- spatial_bias_raster(2)
+    plot(Total_Gbif_Occurrencs_Per_Cell,Occurrences_of_species_of_interest_per_cell)
+  })
+  
   #Create a rasta file that can be used in a comparison graph for how many 
   #results are in a cell per gbif vs. how many results are in a cell for 
   #the collected dataset
@@ -512,6 +535,7 @@ server <- function(input, output) {
                  ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
       crds_cea = spTransform(crds_sp, CRSobj = CRS(proj4string(r)))
       ct = rasterize(crds_cea, r, fun='count')
+      return(ct)
     }
     else {
       dat = temporal_bias_data(4);
@@ -521,6 +545,7 @@ server <- function(input, output) {
                  ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
       crds_cea = spTransform(crds_sp, CRSobj = CRS(proj4string(r)))
       ct = rasterize(crds_cea, r, fun='count')
+      return(ct)
     }
   }
   
