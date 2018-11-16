@@ -210,7 +210,9 @@ ui <- dashboardPage(
                   h5("The plot below shows the correlation between the number of observations
                      per map pixel for the selected dataset and the number of observations per
                      map pixel for the overall Gbif dataset. Take this into consideration when 
-                     comparing how many occurrences are reported in one area rather than another.",
+                     comparing how many occurrences are reported in one area rather than another.
+                     Note that, due to the fact that any data pulled from Gbif is a subset of their
+                     database, no points can appear to the left of the line drawn",
                      withSpinner(plotOutput("spatial_bias_plot")))),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
@@ -267,9 +269,10 @@ server <- function(input, output) {
     }
     
     if (input$input_file_checkbox) {
-      #Currently throws an error
-      #dat <- occ_download_import(data_file_name)
-      #return(dat)
+      #Works, but says file does not exist
+      file = substring(data_file_name,1,23)
+      dat <- occ_download_import(key = file)
+      return(dat)
     }
     else if (input$down_key_checkbox){
       continue = FALSE
@@ -518,6 +521,9 @@ server <- function(input, output) {
     Occurrences_of_species_of_interest_per_cell <- spatial_bias_raster(1)
     Total_Gbif_Occurrencs_Per_Cell <- spatial_bias_raster(2)
     plot(Total_Gbif_Occurrencs_Per_Cell,Occurrences_of_species_of_interest_per_cell)
+    corr = cor(Total_Gbif_Occurrencs_Per_Cell@data,Occurrences_of_species_of_interest_per_cell@data, use = "complete.obs")
+    legend("topleft", paste("Correlation = ", corr))
+    abline(a=0,b=1);
   })
   
   #Create a rasta file that can be used in a comparison graph for how many 
