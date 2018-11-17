@@ -518,12 +518,14 @@ server <- function(input, output) {
   })
   
   output$spatial_bias_plot <- renderPlot({
-    Occurrences_of_species_of_interest_per_cell <- spatial_bias_raster(1)
-    Total_Gbif_Occurrencs_Per_Cell <- spatial_bias_raster(2)
-    plot(Total_Gbif_Occurrencs_Per_Cell,Occurrences_of_species_of_interest_per_cell)
-    corr = cor(Total_Gbif_Occurrencs_Per_Cell@data,Occurrences_of_species_of_interest_per_cell@data, use = "complete.obs")
-    legend("topleft", paste("Correlation = ", corr))
-    abline(a=0,b=1);
+    interest <- spatial_bias_raster(1)
+    Total <- spatial_bias_raster(2)
+    plot(Total,interest, xlab = "Total Gbif occurrences per cell", ylab = "Species of Inerest occurrences per cell")
+    dat <- getValues(interest)
+    fullDat <- getValues(Total)
+    corr = cor(fullDat,dat, use = "complete.obs")
+    legend("topleft", paste("Correlation = ", corr),bty = "n")
+    abline(a=0,b=1)
   })
   
   #Create a rasta file that can be used in a comparison graph for how many 
