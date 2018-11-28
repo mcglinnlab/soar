@@ -518,24 +518,26 @@ server <- function(input, output) {
   })
   
   output$spatial_bias_plot <- renderPlot({
-    interest <- spatial_bias_raster(1)
-    Total <- spatial_bias_raster(2)
-    plot(Total,interest, xlab = "Total Gbif occurrences per cell", ylab = "Species of Inerest occurrences per cell")
+    interest <- spatial_bias_raster("selected_sp")
+    Total <- spatial_bias_raster("all_sp")
+    plot(Total,interest, pch=1, cex=1,
+         xlab = "Total Gbif occurrences per cell",
+        ylab = "Species of Inerest occurrences per cell")
     dat <- getValues(interest)
     fullDat <- getValues(Total)
     corr = cor(fullDat,dat, use = "complete.obs")
-    legend("topleft", paste("Correlation = ", corr),bty = "n")
+    legend("topleft", paste("r = ", corr),bty = "n")
     abline(a=0,b=1)
   })
   
   #Create a rasta file that can be used in a comparison graph for how many 
   #results are in a cell per gbif vs. how many results are in a cell for 
   #the collected dataset
-  spatial_bias_raster <- function(num){
+  spatial_bias_raster <- function(input = c("selected_sp", "all_sp")){
     #create and return the raster files depending on input
     # 1 = downloaded dataset
     # 2 = Full dataset
-    if (num == 1){
+    if (input == "selected_sp"){
       dat = gbif_data();
       crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
       crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
