@@ -8,13 +8,14 @@ library(DT)
 library(leaflet)
 library(jsonlite)
 library(rgbif)
+library(raster)
 library(shinycssloaders)
 library(CoordinateCleaner)
 library(rnaturalearth)
 
 choice <- function(input_num) {
-  Gbif_fields <- read.csv("gbif_fields.csv", as.is = TRUE)
-  Country_codes <- read.csv("countryCodes.csv", as.is = TRUE)
+  Gbif_fields <- read.csv("../data/gbif_fields.csv", as.is = TRUE)
+  Country_codes <- read.csv("../data/countryCodes.csv", as.is = TRUE)
   # Note to Self -- [row,col] cols: colName, MetaData, Minimal, Default, Custom
   #Sets lis to a list of the row names selected and sets selected to a list of values in the column
   if (input_num ==1){
@@ -75,7 +76,7 @@ ui <- dashboardPage(
     checkboxInput("lat_long_check_box", label = "Input Geographical Boundaries with Latitude and Longitude", 
                   value = FALSE),
     conditionalPanel (
-      condition = "input.lat_long_check_box == true",
+      condition = "input.lat_long_check_box == true && input.input_file_checkbox == false && input.down_key_checkbox == false",
       numericInput("Lat_low", "Latitude lower range", "-90", min = -90, max = 90),
       numericInput("Lat_high", "Latitude upper range", "90", min = -90, max = 90),
       numericInput("Long_low", "Longitude lower range", "-180", min = -180, max = 180),
@@ -85,14 +86,14 @@ ui <- dashboardPage(
     #input bounding box with political boundaries
     checkboxInput("political_checkbox", label = "Input Geographical boundaries by country"),
     conditionalPanel(
-      condition ="input.political_checkbox == true",
+      condition ="input.political_checkbox == true && input.input_file_checkbox == false && input.down_key_checkbox == false",
       selectInput("political_boundary", "Country Name", choices = choice(4), selected = "US")
       ),
    
      #input date bounding information for gbif
     checkboxInput("date_checkbox", label = "Sort by date", value = FALSE),
     conditionalPanel (
-      condition = "input.date_checkbox == true",
+      condition = "input.date_checkbox == true && input.input_file_checkbox == false && input.down_key_checkbox == false",
       dateInput("from_date", "Show results from this date:"),
       dateInput("to_date", "to this date:")
     ),
@@ -100,8 +101,15 @@ ui <- dashboardPage(
     #input specific download key
     checkboxInput("down_key_checkbox", label = "Specify Download Key", value = FALSE),
     conditionalPanel (
-      condition = "input.down_key_checkbox == true",
+      condition = "input.down_key_checkbox == true && input.input_file_checkbox == false",
       textInput("down_key", "Download Key:", "" )
+    ),
+    
+    #input file name to import
+    checkboxInput("input_file_checkbox", label = "Import Gbif Data File", value = FALSE),
+    conditionalPanel(
+      condition = "input.input_file_checkbox == true",
+      textInput("file_name", "Gbif Data File(format: file_name.zip):" ,"")
     ),
       
     actionButton("do", "Submit")
@@ -145,7 +153,6 @@ ui <- dashboardPage(
                checkboxInput("bio_prox", label = "Proximity to biodiversity institutions", value = FALSE),
                checkboxInput("out_box", label = "Outliers", value = FALSE),
                checkboxInput("sea_box", label = "Locaton relative to the oceans (check if records include only terrestrial organisms)", value = FALSE),
-               checkboxInput("urb_prox", label = "Proximity to urban areas", value = FALSE),
                checkboxInput("equ_zero_zero", label = "Equal latitude and longitude, plain zeros, and proximity to point 0/0", value = FALSE),
               
                
@@ -178,30 +185,55 @@ ui <- dashboardPage(
                                 numericInput("zero_rad", "Radius around 0/0 (degrees)", 0.5)
                ),
                #provide these (do not require as input):
-                #capitals.ref
-                #centroids.ref
+                #capitals.ref -- works fine on its own
+                #centroids.ref -- works fine on its own
                 #country.ref -- Works fine with rnaturalearth added in
-                #inst.ref
-                #seas.ref -- Works fine on it's own
+                #inst.ref -- works fine on its own
+                #seas.ref -- Works fine on its own
                 #urban.ref
                selectInput("value_input", "What kind of output would you like?", 
                            choices = list("Spatial Valid - A separate document with what data was flagged and for what test" = 1, "Clean - the flagged data is automatically removed" = 2), selected = 1),
                #verbose = False
               actionButton("do_clean", "Submit")
                ),
-      tabPanel("Detect Bias"),
+      tabPanel("Detect Bias",
+               h4("Temporal Bias", h5("Information can become less accurate depending on when it was collected. These percentages are for refrence in determining the accuracy of your dataset."),
+                  h6(textOutput("pre1950"),"% of the dataset was collected before 1950"),
+                  h6(textOutput("pre1970"),"% of the dataset was collected before 1970"),
+                  h6(textOutput("pre1990"),"% of the dataset was collected before 1990")),
+                  h5(), #For a new line
+                  h5("The plots below shows the number of observtions in the current dataset per year compared with the 
+                     number of observations reported to Gbif in total per year. Take this into consideration when comparing
+                     the number of observations from one year to another. The red line is the fetched dataset while the black 
+                     line is the total number of observations for that year.", withSpinner(plotOutput("temporal_bias_plot"))),
+                  h5(withSpinner(plotOutput("temporal_bias_comparison_plot") )),
+               h4("Spatial Bias"),
+                  h5("The map below shows the occurrences in the selected dataset (black) overlaid with all 
+                     occurrences in the Gbif database (red). Take this into consideration when 
+                     comparing how many occurrences are reported in one area rather than another.",
+                     withSpinner(leafletOutput("spatial_bias_map")) ),
+                  h5("The plot below shows the correlation between the number of observations
+                     per map pixel for the selected dataset and the number of observations per
+                     map pixel for the overall Gbif dataset. Take this into consideration when 
+                     comparing how many occurrences are reported in one area rather than another.
+                     Note that, due to the fact that any data pulled from Gbif is a subset of their
+                     database, no points can appear to the left of the line drawn",
+                     withSpinner(plotOutput("spatial_bias_plot")))),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
                downloadButton('download_clean_data', label = "Download Table"),
                withSpinner(DT::dataTableOutput("clean_data")))
     )
-    
   )
 )
 #server- logic of the app
 server <- function(input, output) {
   
   gbif_data <- eventReactive(input$do, {
+    #import file
+    if (input$input_file_checkbox){
+    data_file_name = input$file_name
+    }
     #filter by name
     sp_key <- name_suggest(q =input$species_name, rank = input$rank)$key[1]
     #filter by country
@@ -241,14 +273,20 @@ server <- function(input, output) {
       high_long <- 180
     }
     
-    if (input$down_key_checkbox){
+    if (input$input_file_checkbox) {
+      #Works, but says file does not exist
+      file = substring(data_file_name,1,23)
+      dat <- occ_download_import(key = file)
+      return(dat)
+    }
+    else if (input$down_key_checkbox){
       continue = FALSE
       dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE) %>% occ_download_import()
       return(dat)
     }
     else{
       continue = TRUE
-      if (input$date_checkbox){
+      if (input$political_checkbox){
         res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
                            paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
                            paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
@@ -306,7 +344,7 @@ server <- function(input, output) {
                            institutions = input$bio_prox,
                            outliers = input$out_box,
                            seas = input$sea_box,
-                           urban = input$urb_prox,
+                           urban = FALSE,
                            zeros = input$equ_zero_zero,
                            capitals.rad = input$cap_rad,
                            centroids.rad = input$cen_rad,
@@ -330,7 +368,8 @@ server <- function(input, output) {
     )
     return(dat)
   })
-  
+ 
+  #Help determine meaningful input for clean_info 
   cen_detail_val <- function(){
     if (input$cen_detail == 1){
       return("country")
@@ -362,6 +401,168 @@ server <- function(input, output) {
     }
   }
   
+  #Determine percentages of the dataset that was collected prior to 1990,1970, and 1950
+  temporal_bias <- function(num){
+    dat = gbif_data()
+    #narrow dat down so that it only contains the years
+    year = dat$year
+    pre1990 = 0
+    pre1970 = 0
+    pre1950 = 0
+    for (i in seq_along(year)) {
+      if (year[i] < 1950){
+        pre1950 = pre1950 + 1
+        pre1970 = pre1970 + 1
+        pre1990 = pre1990 + 1
+      }
+      else if (year[i] < 1970) {
+        pre1970 = pre1970 + 1
+        pre1990 = pre1990 + 1
+      }
+      else if (year[i] < 1990) {
+        pre1990 = pre1990 + 1
+      }
+    }
+    
+    if (num == 1){
+    return((pre1990/(length(year)))*100)
+    }
+    else if (num == 2) {
+    (pre1970/(length(year)))*100
+    }
+    else {
+    (pre1950/(length(year)))*100
+    }
+  }
+  #actually pass back the data
+  output$pre1950 <- renderText(
+    temporal_bias(3)
+  )
+  output$pre1970 <- renderText(
+    return(temporal_bias(2))
+  )
+  output$pre1990 <- renderText(
+    return(temporal_bias(1))
+  )
+  
+  #Currenlty just gets the data for the graph ready
+  #will eventually be an output for the data
+  temporal_bias_data <-function(num){
+    dat <- gbif_data()$year
+    #FILL IN FOR FULL DATA LATER
+    if (num == 3){
+      #Doing this rather than the whole download sequence allows it to read the 
+      #file (of the same name as the key) rather than downloading the dataset again.
+      #This also speeds up the code significantly
+    fullDat <- occ_download_import(key = "0019554-181003121212138") 
+    fullDat <- fullDat$year
+    fullDatYear <- list()
+    
+    for (i in 1:(2018-1599)) {fullDatYear[i] = 0}
+    
+    for (i in 1:length(fullDat)){
+      curr = as.numeric(fullDat[i])
+      fullDatYear[curr - 1599] = (as.numeric(fullDatYear[curr-1599])) + 1
+    }
+    }
+    if (num == 4){
+      #FILL IN FOR FULL DATA LATER
+      #Doing this rather than the whole download sequence allows it to read the 
+      #file (of the same name as the key) rather than downloading the dataset again.
+      #This also speeds up the code significantly
+      fullDat <- occ_download_import(key = "0019554-181003121212138") 
+    }
+    datYear <- list()
+    years <- list()
+    
+    for (i in 1:(2018-1599)) {datYear[i] = 0}
+    for (i in 1:(2018-1599)) {years[i] = i + 1599}
+    for (i in 1:length(dat)){
+      curr = as.numeric(dat[i])
+      datYear[curr - 1599] = (as.numeric(datYear[curr-1599])) + 1
+    }
+
+    if (num == 1) {return(years)}
+    if (num == 2) {return(datYear)}
+    if (num == 3) {return(fullDatYear)}
+    if (num == 4) {return(fullDat)}
+  }
+  
+  output$temporal_bias_plot <- renderPlot({
+    Year <-temporal_bias_data(1)
+    Number_Of_Observations <-temporal_bias_data(3)
+    plot(Year, Number_Of_Observations, type = "l")
+    lines(Year, temporal_bias_data(2), col = "red")
+  })
+  
+  output$temporal_bias_comparison_plot <- renderPlot({
+    Species_Of_Interest_Observations_Per_Year <- temporal_bias_data(2);
+    Total_Observations_Per_Year <- temporal_bias_data(3);
+    #DOESN'T LOOK RIGHT -- ( Was due to the very small dataset in use)
+    plot(Total_Observations_Per_Year, Species_Of_Interest_Observations_Per_Year)
+  })
+  
+  #Output a plot that shows the range of where all Gbif data is from Vs. where 
+  #only the selected data is from
+  output$spatial_bias_map <- renderLeaflet({
+    #Full Data -> temporal_bias_data(4) -- red
+    #Sample Data -> gbif_data() -- black
+    leaflet(temporal_bias_data(4)) %>%
+      addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
+      
+      addCircleMarkers(lng = ~ decimalLongitude, lat = ~ decimalLatitude,
+                       radius = 3,
+                       color = 'black',
+                       stroke = FALSE, fillOpacity = 0.5
+      ) %>%
+      addCircleMarkers(data = gbif_data(), lng = ~ decimalLongitude, lat = ~ decimalLatitude,
+                       radius = 3,
+                       color = "red",
+                       stroke = FALSE, 
+                       fillOpacity = 0.5)
+  })
+  
+  output$spatial_bias_plot <- renderPlot({
+    interest <- spatial_bias_raster("selected_sp")
+    Total <- spatial_bias_raster("all_sp")
+    plot(Total,interest, pch=1, cex=1,
+         xlab = "Total Gbif occurrences per cell",
+        ylab = "Species of Inerest occurrences per cell")
+    dat <- getValues(interest)
+    fullDat <- getValues(Total)
+    corr = cor(fullDat,dat, use = "complete.obs")
+    legend("topleft", paste("r = ", corr),bty = "n")
+    abline(a=0,b=1)
+  })
+  
+  #Create a rasta file that can be used in a comparison graph for how many 
+  #results are in a cell per gbif vs. how many results are in a cell for 
+  #the collected dataset
+  spatial_bias_raster <- function(input = c("selected_sp", "all_sp")){
+    #create and return the raster files depending on input
+    # 1 = downloaded dataset
+    # 2 = Full dataset
+    if (input == "selected_sp"){
+      dat = gbif_data();
+      crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
+      crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
+      r = raster(nrows=116, ncols=364, xmn=-20037.51, xmx=20002.49, ymn=-6396.115,
+                 ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
+      crds_cea = spTransform(crds_sp, CRSobj = CRS(proj4string(r)))
+      ct = rasterize(crds_cea, r, fun='count')
+      return(ct)
+    }
+    else {
+      dat = temporal_bias_data(4);
+      crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
+      crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
+      r = raster(nrows=116, ncols=364, xmn=-20037.51, xmx=20002.49, ymn=-6396.115,
+                 ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
+      crds_cea = spTransform(crds_sp, CRSobj = CRS(proj4string(r)))
+      ct = rasterize(crds_cea, r, fun='count')
+      return(ct)
+    }
+  }
   
 #Default Cols? [,c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230)]
 #Makes A Downloadable Table for only the columns selected
