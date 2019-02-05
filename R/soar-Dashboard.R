@@ -449,6 +449,7 @@ server <- function(input, output) {
   #will eventually be an output for the data
   temporal_bias_data <-function(num){
     dat <- gbif_data()$year
+    currYear <- as.numeric(substring(Sys.Date(),1,4));
     #FILL IN FOR FULL DATA LATER
     if (num == 3){
       #Doing this rather than the whole download sequence allows it to read the 
@@ -458,7 +459,7 @@ server <- function(input, output) {
     fullDat <- fullDat$year
     fullDatYear <- list()
     
-    for (i in 1:(2018-1599)) {fullDatYear[i] = 0}
+    for (i in 1:(currYear-1599)) {fullDatYear[i] = 0}
     
     for (i in 1:length(fullDat)){
       curr = as.numeric(fullDat[i])
@@ -475,8 +476,8 @@ server <- function(input, output) {
     datYear <- list()
     years <- list()
     
-    for (i in 1:(2018-1599)) {datYear[i] = 0}
-    for (i in 1:(2018-1599)) {years[i] = i + 1599}
+    for (i in 1:(currYear-1599)) {datYear[i] = 0}
+    for (i in 1:(currYear-1599)) {years[i] = i + 1599}
     for (i in 1:length(dat)){
       curr = as.numeric(dat[i])
       datYear[curr - 1599] = (as.numeric(datYear[curr-1599])) + 1
