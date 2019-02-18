@@ -1,17 +1,17 @@
 library(digest)
 library(htmltools)
 library(mime)
-library(shiny)
-library(shinydashboard)
-library(ggplot2)
-library(DT)
-library(leaflet)
-library(jsonlite)
-library(rgbif)
-library(raster)
-library(shinycssloaders)
-library(CoordinateCleaner)
-library(rnaturalearth)
+library(shiny) #Display
+library(shinydashboard)  #Display
+library(ggplot2) #for the plots
+library(DT)  #For the tables
+library(leaflet)  #Maps
+library(jsonlite)  
+library(rgbif)  #GBIF data
+library(raster)  #for working with rasters
+library(shinycssloaders)  #This makes the loading symbols
+library(CoordinateCleaner)  #Cleans the Data
+library(rnaturalearth)  #Maps for leaflet
 
 choice <- function(input_num) {
   Gbif_fields <- read.csv("../data/gbif_fields.csv", as.is = TRUE)
