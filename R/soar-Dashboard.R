@@ -55,6 +55,7 @@ choice <- function(input_num) {
   return(final_list)
 }
 data_ID <- "" #holds the citation info
+data_meta <- "" #holds data for getting citation
 #create a user interface
 ui <- dashboardPage(
   #App title
@@ -122,7 +123,7 @@ ui <- dashboardPage(
       tabPanel("Map", withSpinner(leafletOutput("world_map"))),
       #now also gives the ID for citing the data
       tabPanel("Raw Data", DT::dataTableOutput("raw_data")),
-      tabPanel("Download Table", textOutput("data_ID_return"), actionButton("do_ID", "Refresh Data ID for citations"),
+      tabPanel("Download Table", textOutput("data_ID_return"), h4(""), h4("Citation:"), textOutput("data_citation_return"), actionButton("do_ID", "Refresh Data ID for citations"),
                radioButtons("table_cols", label = "Columns in Downloadable table",
                                   choices = list("Minimal" = 1, "Default" = 2, "All Columns" = 3, "Custom" = 4), 
                                   selected = 1),
@@ -231,8 +232,10 @@ ui <- dashboardPage(
 #server- logic of the app
 server <- function(input, output) {
   
-  output$data_ID_return <- renderText({paste("Your ID for citing this data:", retrieve_data_ID())})
+  output$data_ID_return <- renderText({paste("Your ID for finding this data again:", retrieve_data_ID())})
   retrieve_data_ID <- eventReactive(input$do_ID, {return(data_ID)})
+  retrieve_data_citation <- eventReactive(input$do_ID, {return(gbif_citation(data_meta)$datasets[[1]]$citation$citation)})
+  output$data_citation_return <- renderText({retrieve_data_citation()})
   
   gbif_data <- eventReactive(input$do, {
     #import file
@@ -283,12 +286,15 @@ server <- function(input, output) {
       file = substring(data_file_name,1,23)
       data_ID <<- file #update the citation info
       dat <- occ_download_import(key = file)
+      data_meta <<- occ_download_get(key = file, overwrite = TRUE)
       return(dat)
     }
     else if (input$down_key_checkbox){
       continue = FALSE
       data_ID <<- toString(input$down_key) #update the citation info
-      dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE) %>% occ_download_import()
+      dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE)# %>% occ_download_import()
+      data_meta <<- dat
+      dat <- occ_download_import(dat)
       return(dat)
     }
     else{
@@ -315,6 +321,7 @@ server <- function(input, output) {
     
     #updates the data_ID
     data_ID <<- toString(res)
+    data_meta <<- occ_download_meta(res)
 #loops so that it checks every 30 seconds to see if meta$status is "SUCCEEDED" or "KILLED"
     while(continue){
       meta = occ_download_meta(res)
