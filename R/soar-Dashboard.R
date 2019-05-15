@@ -455,8 +455,18 @@ server <- function(input, output) {
     return(temporal_bias(1))
   )
   
+  #gets data for spatial bias plot
+  spatial_bias_data <- function(){
+      all_data_raster <- map_fetch(srs = "EPSG:3857") #actual data to return
+      fullDat <- occ_download_import(key = "0019554-181003121212138") #so the code doesn't crash
+      return(fullDat) # should return all_data_raster eventually
+      #return(all_data_raster)
+  }
+  
   #Currenlty just gets the data for the graph ready
-  #will eventually be an output for the data
+  # 1- list of years 
+  # 2- species of interest observations per year
+  # 3- full dataset observations per year
   temporal_bias_data <-function(num){
     dat <- gbif_data()$year
     currYear <- as.numeric(substring(Sys.Date(),1,4));
@@ -476,13 +486,6 @@ server <- function(input, output) {
       fullDatYear[curr - 1599] = (as.numeric(fullDatYear[curr-1599])) + 1
     }
     }
-    if (num == 4){
-      #FILL IN FOR FULL DATA LATER
-      #Doing this rather than the whole download sequence allows it to read the 
-      #file (of the same name as the key) rather than downloading the dataset again.
-      #This also speeds up the code significantly
-      fullDat <- occ_download_import(key = "0019554-181003121212138") 
-    }
     datYear <- list()
     years <- list()
     
@@ -496,7 +499,6 @@ server <- function(input, output) {
     if (num == 1) {return(years)}
     if (num == 2) {return(datYear)}
     if (num == 3) {return(fullDatYear)}
-    if (num == 4) {return(fullDat)}
   }
   
   output$temporal_bias_plot <- renderPlot({
@@ -509,16 +511,15 @@ server <- function(input, output) {
   output$temporal_bias_comparison_plot <- renderPlot({
     Species_Of_Interest_Observations_Per_Year <- temporal_bias_data(2);
     Total_Observations_Per_Year <- temporal_bias_data(3);
-    #DOESN'T LOOK RIGHT -- ( Was due to the very small dataset in use)
     plot(Total_Observations_Per_Year, Species_Of_Interest_Observations_Per_Year)
   })
   
   #Output a plot that shows the range of where all Gbif data is from Vs. where 
   #only the selected data is from
   output$spatial_bias_map <- renderLeaflet({
-    #Full Data -> temporal_bias_data(4) -- red
+    #Full Data -> spatial_bias_data() -- red
     #Sample Data -> gbif_data() -- black
-    leaflet(temporal_bias_data(4)) %>%
+    leaflet(spatial_bias_data()) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       
       addCircleMarkers(lng = ~ decimalLongitude, lat = ~ decimalLatitude,
@@ -564,7 +565,7 @@ server <- function(input, output) {
       return(ct)
     }
     else {
-      dat = temporal_bias_data(4);
+      dat = spatial_bias_data();
       crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
       crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
       r = raster(nrows=116, ncols=364, xmn=-20037.51, xmx=20002.49, ymn=-6396.115,
