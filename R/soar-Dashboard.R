@@ -205,11 +205,8 @@ ui <- dashboardPage(
                   h6(textOutput("pre1970"),"% of the dataset was collected before 1970"),
                   h6(textOutput("pre1990"),"% of the dataset was collected before 1990")),
                   h5(), #For a new line
-                  h5("The plots below shows the number of observtions in the current dataset per year compared with the 
-                     number of observations reported to Gbif in total per year. Take this into consideration when comparing
-                     the number of observations from one year to another. The red line is the fetched dataset while the black 
-                     line is the total number of observations for that year.", withSpinner(plotOutput("temporal_bias_plot"))),
-                  h5(withSpinner(plotOutput("temporal_bias_comparison_plot") )),
+                  h5("The plot below shows the number of observtions in the current dataset per year. Take this into consideration when comparing
+                     the number of observations from one year to another.", withSpinner(plotOutput("temporal_bias_plot"))),
                h4("Spatial Bias"),
                   h5("The map below shows the occurrences in the selected dataset (black) overlaid with all 
                      occurrences in the Gbif database (red). Take this into consideration when 
@@ -510,15 +507,7 @@ server <- function(input, output) {
   
   output$temporal_bias_plot <- renderPlot({
     Year <-temporal_bias_data(1)
-    Number_Of_Observations <-temporal_bias_data(3)
-    plot(Year, Number_Of_Observations, type = "l")
-    lines(Year, temporal_bias_data(2), col = "red")
-  })
-  
-  output$temporal_bias_comparison_plot <- renderPlot({
-    Species_Of_Interest_Observations_Per_Year <- temporal_bias_data(2);
-    Total_Observations_Per_Year <- temporal_bias_data(3);
-    plot(Total_Observations_Per_Year, Species_Of_Interest_Observations_Per_Year)
+    plot(Year, temporal_bias_data(2), type = "l")
   })
   
   #Output a plot that shows the range of where all Gbif data is from Vs. where 
