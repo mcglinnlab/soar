@@ -470,8 +470,7 @@ server <- function(input, output) {
       rank <- input$bias_rank
       sp_key <- name_suggest(q =latin_name, rank = rank)$key[1]
       #This line is supposed to retrieve the actual data, 
-      #but it always returns the total dataset?
-      all_data_raster <- map_fetch(search = "taxonKey", id = sp_key, srs = "EPSG:3857")
+      all_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857")
       fullDat <- occ_download_import(key = "0019554-181003121212138") #so the code doesn't crash
       return(fullDat) # should return all_data_raster eventually
       #return(all_data_raster)
