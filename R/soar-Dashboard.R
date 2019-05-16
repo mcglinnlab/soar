@@ -56,6 +56,7 @@ choice <- function(input_num) {
 }
 data_ID <- "" #holds the citation info
 data_meta <- "" #holds data for getting citation
+clean_data_exists <- FALSE #holds a boolean for telling if cleaned data has been created
 #create a user interface
 ui <- dashboardPage(
   #App title
@@ -123,7 +124,7 @@ ui <- dashboardPage(
       tabPanel("Map", withSpinner(leafletOutput("world_map"))),
       #now also gives the ID for citing the data
       tabPanel("Raw Data", DT::dataTableOutput("raw_data")),
-      tabPanel("Download Table", textOutput("data_ID_return"), h4(""), h4("Citation:"), textOutput("data_citation_return"), actionButton("do_ID", "Refresh Data ID for citations"),
+      tabPanel("Download Raw Data", textOutput("data_ID_return"), h4(""), h4("Citation:"), textOutput("data_citation_return"), actionButton("do_ID", "Refresh Data ID for citations"),
                radioButtons("table_cols", label = "Columns in Downloadable table",
                                   choices = list("Minimal" = 1, "Default" = 2, "All Columns" = 3, "Custom" = 4), 
                                   selected = 1),
@@ -200,6 +201,8 @@ ui <- dashboardPage(
               actionButton("do_clean", "Submit")
                ),
       tabPanel("Detect Bias",
+               checkboxInput("cleaned_bias", label = "Use cleaned data in this tab", value = FALSE),
+               textOutput("cleaned_bias_boolean"),
                h4("Temporal Bias", h5("Information can become less accurate depending on when it was collected. These percentages are for refrence in determining the accuracy of your dataset."),
                   h6(textOutput("pre1950"),"% of the dataset was collected before 1950"),
                   h6(textOutput("pre1970"),"% of the dataset was collected before 1970"),
@@ -352,6 +355,7 @@ server <- function(input, output) {
   
   #Clean Data based on input
   clean_info <- eventReactive(input$do_clean, {
+    clean_data_exists <<- TRUE
     dat = CleanCoordinates(x= gbif_data(),lon = "decimalLongitude", lat = "decimalLatitude",
                            species = "species", countries = "countryCode",
                            capitals = input$cap_prox_box,
@@ -387,6 +391,24 @@ server <- function(input, output) {
     )
     return(dat)
   })
+  
+  #tells the user if cleaned data is not available
+  output$cleaned_bias_boolean <- renderText({cleaned_boolean_check()})
+  
+  #resets cleaned data boolean variable if the input$do button is pressed again
+  reset_clean_data_boolean <- eventReactive(input$do,{
+    clean_data_exists <<- FALSE
+    })
+  
+  cleaned_boolean_check <- eventReactive(input$cleaned_bias == TRUE, {
+    if (clean_data_exists && input$cleaned_bias == TRUE){
+      return("")
+    }
+    if (clean_data_exists == FALSE && input$cleaned_bias == TRUE){
+      return("Cleaned dataset has not yet been created, see Clean Data tab")
+      }
+    
+    })
  
   #Help determine meaningful input for clean_info 
   cen_detail_val <- function(){
