@@ -64,7 +64,7 @@ ui <- dashboardPage(
   #sidebar with input fields
   dashboardSidebar(
     #get species name
-    textInput("species_name", "Species name", "Caretta caretta"),
+    textInput("species_name", "Latin name", "Caretta caretta"),
     selectInput("rank", "Taxonomic rank", 
                 choices = list("Species" = "Species","Genus" = "Genus", "Family" = "Family","Order" = "Order", 
                                "Class" = "Class", "Phylum" = "Phylum", "Kingdom" = "Kingdom"), selected = "Species"),
@@ -208,13 +208,18 @@ ui <- dashboardPage(
                   h5("The plot below shows the number of observtions in the current dataset per year. Take this into consideration when comparing
                      the number of observations from one year to another.", withSpinner(plotOutput("temporal_bias_plot"))),
                h4("Spatial Bias"),
-                  h5("The map below shows the occurrences in the selected dataset (black) overlaid with all 
-                     occurrences in the Gbif database (red). Take this into consideration when 
+                  h5("The map below shows the occurrences in the selected dataset (black) overlaid with the dataset 
+                      specified in the boxes above the map(red). Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another.",
+                     textInput("bias_name", "Latin name", "Caretta caretta"),
+                     selectInput("bias_rank", "Taxonomic rank", 
+                                 choices = list("Species" = "Species","Genus" = "Genus", "Family" = "Family","Order" = "Order", 
+                                                "Class" = "Class", "Phylum" = "Phylum", "Kingdom" = "Kingdom"), selected = "Species"),
+                     actionButton("spatial_do", "Use this dataset for spatial bias comparison"), h4(),
                      withSpinner(leafletOutput("spatial_bias_map")) ),
-                  h5("The plot below shows the correlation between the number of observations
-                     per map pixel for the selected dataset and the number of observations per
-                     map pixel for the overall Gbif dataset. Take this into consideration when 
+                  h5("The plot below shows the correlation between the percent of total observations
+                     per map pixel for the selected dataset and the percent of total observations per
+                     map pixel for the comparison dataset selected above. Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another.
                      Note that, due to the fact that any data pulled from Gbif is a subset of their
                      database, no points can appear to the left of the line drawn",
@@ -460,12 +465,17 @@ server <- function(input, output) {
   )
   
   #gets data for spatial bias plot
-  spatial_bias_data <- function(){
-      all_data_raster <- map_fetch(srs = "EPSG:3857") #actual data to return
+  spatial_bias_data <- eventReactive(input$spatial_do,{
+      latin_name <- input$bias_name
+      rank <- input$bias_rank
+      sp_key <- name_suggest(q =latin_name, rank = rank)$key[1]
+      #This line is supposed to retrieve the actual data, 
+      #but it always returns the total dataset?
+      all_data_raster <- map_fetch(search = "taxonKey", id = sp_key, srs = "EPSG:3857")
       fullDat <- occ_download_import(key = "0019554-181003121212138") #so the code doesn't crash
       return(fullDat) # should return all_data_raster eventually
       #return(all_data_raster)
-  }
+  })
   
   #Currenlty just gets the data for the graph ready
   # 1- list of years 
