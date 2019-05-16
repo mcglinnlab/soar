@@ -391,6 +391,9 @@ server <- function(input, output) {
     )
     return(dat)
   })
+  set_clean_boolean <- eventReactive(input$do_clean, {
+    clean_data_exists <<- TRUE
+    })
   
   #tells the user if cleaned data is not available
   output$cleaned_bias_boolean <- renderText({cleaned_boolean_check()})
@@ -405,7 +408,7 @@ server <- function(input, output) {
       return("")
     }
     if (clean_data_exists == FALSE && input$cleaned_bias == TRUE){
-      return("Cleaned dataset has not yet been created, see Clean Data tab")
+      return("Cleaned dataset has not yet been created, see Clean Data tab and Download Cleaned Data Tab")
       }
     
     })
@@ -475,6 +478,7 @@ server <- function(input, output) {
     (pre1950/(length(year)))*100
     }
   }
+ 
   #actually pass back the data
   output$pre1950 <- renderText(
     temporal_bias(3)
@@ -546,6 +550,7 @@ server <- function(input, output) {
   output$spatial_bias_map <- renderLeaflet({
     #Full Data -> spatial_bias_data() -- red
     #Sample Data -> gbif_data() -- black
+    selected_data <- gbif_data()
     leaflet(spatial_bias_data()) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       
@@ -554,7 +559,7 @@ server <- function(input, output) {
                        color = 'black',
                        stroke = FALSE, fillOpacity = 0.5
       ) %>%
-      addCircleMarkers(data = gbif_data(), lng = ~ decimalLongitude, lat = ~ decimalLatitude,
+      addCircleMarkers(data = selected_data, lng = ~ decimalLongitude, lat = ~ decimalLatitude,
                        radius = 3,
                        color = "red",
                        stroke = FALSE, 
