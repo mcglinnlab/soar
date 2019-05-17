@@ -229,6 +229,7 @@ ui <- dashboardPage(
                      withSpinner(plotOutput("spatial_bias_plot")))),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
+               downloadButton('download_clean_data_params', label = "Download text document with parameters used to create this table"),
                downloadButton('download_clean_data', label = "Download Table"),
                withSpinner(DT::dataTableOutput("clean_data")))
     )
@@ -353,9 +354,10 @@ server <- function(input, output) {
 #Display Cleaned Dataset based on criteria  
   output$clean_data <- DT::renderDataTable(expr = clean_info(),options=list(autoWidth = TRUE,scrollX=TRUE))
   
-  #Clean Data based on input
+  #Clean Data based on input - also creates text document with parameters
   clean_info <- eventReactive(input$do_clean, {
-    clean_data_exists <<- TRUE
+    clean_data_exists <<- TRUE 
+    #call Coordinate Cleaner
     dat = CleanCoordinates(x= gbif_data(),lon = "decimalLongitude", lat = "decimalLatitude",
                            species = "species", countries = "countryCode",
                            capitals = input$cap_prox_box,
@@ -444,6 +446,19 @@ server <- function(input, output) {
       return("distance")
     }
   }
+  
+  #Determine meaninful input for clean_info when creating the file
+  out_type_val_file <- function(){
+    if (input$out_type == 1){
+      return("Boxplot distance")
+    }
+    else if (input$out_type == 2){
+      return("Mean absolute deviation")
+    }
+    else{
+      return("Minimum distance")
+    }
+    }
   
   #Determine percentages of the dataset that was collected prior to 1990,1970, and 1950
   temporal_bias <- function(num){
@@ -633,6 +648,58 @@ server <- function(input, output) {
     }
   )
   
+  #for saving parameters from cleaning data
+  output$download_clean_data_params <- downloadHandler(
+    filename = function(){"Clean_Data_Parameters.txt"},
+    content = function(file){
+      sink(file)
+      cat("This file is to store the parameters used to clean the most recent dataset\n\n")
+      currVar <- input$cap_prox_box
+      cat(paste("Capital Proximity Check:", currVar, "\n"))
+      currVar <- input$cen_prox_box
+      cat(paste("Centroid Proximity Check :", currVar, "\n"))
+      currVar <- input$lat_long_check
+      cat(paste("Country Vs. Location Check :", currVar, "\n"))
+      currVar <- input$rec_dup
+      cat(paste("Duplicate Check :", currVar, "\n"))
+      currVar <- input$iden_lat_long
+      cat(paste("Identical Coordinate Check :", currVar, "\n"))
+      currVar <- input$gbif_prox
+      cat(paste("GBIF Headquarters Proximity Check :", currVar, "\n"))
+      currVar <- input$bio_prox
+      cat(paste("Biodiversity Institution Proximity Check :", currVar, "\n"))
+      currVar <- input$out_box
+      cat(paste("Outlier Check :", currVar, "\n"))
+      currVar <- input$sea_box
+      cat(paste("Ocean Check :", currVar, "\n"))
+      currVar <- input$equ_zero_zero
+      cat(paste("Equal Lat/Long, Plain Zero, and 0/0 Check  :", currVar, "\n"))
+      currVar <- input$cap_rad
+      cat(paste("Radius Around Capitals (if Capitals Check is chosen) :", currVar, "\n"))
+      currVar <- input$cen_rad
+      cat(paste("Radius Around Centroids (if Centroids Check is chosen) :", currVar, "\n"))
+      currVar <- cen_detail_val()
+      cat(paste("Centroid Specification (if Centroids Check is chosen) :", currVar, "\n"))
+      currVar <- input$inst_rad
+      cat(paste("Radius Around Institutions (if Institutions Check is chosen) :", currVar, "\n"))
+      currVar <- out_type_val_file()
+      cat(paste("Outlier Method (if Outlier Check is chosen) :", currVar, "\n"))
+      currVar <- input$out_size
+      cat(paste("Outlier Minimum Records (if Outlier Check is chosen) :", currVar, "\n"))
+      currVar <- input$out_mtp
+      cat(paste("Interquartile Range (if Outlier Mean Absolute Deviation Option is chosen) :", currVar, "\n"))
+      currVar <- input$out_td
+      cat(paste("Outlier Minimum Distance (if Min Distance Outlier Option is chosen) :", currVar, "\n"))
+      currVar <-input$zero_rad
+      cat(paste("Radius Around Point 0/0 (if Equal Lat/Long, Ploin Zero, and 0/0 Check is chosen) :", currVar, "\n"))
+      currVar <- value_input_val()
+      cat(paste("Output Type :", currVar, "\n"))
+      sink()
+      #file.show(clean_data_parameters_file) #just for debugging/checking accuracy
+      }
+    )
+  
+
   output$download_clean_data <- downloadHandler(
     filename = function(){"CleanGbifDat.csv"},
     content = function(file){
