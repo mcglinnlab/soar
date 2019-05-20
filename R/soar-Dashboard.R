@@ -585,8 +585,8 @@ server <- function(input, output) {
     interest <- spatial_bias_raster("selected_sp")
     Total <- spatial_bias_raster("all_sp")
     plot(Total,interest, pch=1, cex=1,
-         xlab = "Total Gbif occurrences per cell",
-        ylab = "Species of Inerest occurrences per cell")
+         xlab = "Percent of Comparison Dataset Occurrences Per Cell",
+        ylab = "Percent of Species of Interest occurrences per cell")
     dat <- getValues(interest)
     fullDat <- getValues(Total)
     corr = cor(fullDat,dat, use = "complete.obs")
@@ -609,7 +609,31 @@ server <- function(input, output) {
                  ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
       crds_cea = spTransform(crds_sp, CRSobj = CRS(proj4string(r)))
       ct = rasterize(crds_cea, r, fun='count')
+      #comment out this line later
       return(ct)
+      
+      #this will turn the full numbers in to percentages of the max to match the values
+      #from the map_fetch() functions ( values on a scale of 0 to 1)
+      #max <- 0
+      #for (i in 1:42224){
+      #  if (!is.na(ct@data@values[i])){
+      #    if (ct@data@values[i] > max){
+      #      max <- ct@data@values[i]
+      #    }
+      #  }
+      #}
+      #
+      #
+      #for (i in 1:42224){
+      #  if (is.na(ct@data@values[i])){
+      #    ct@data@values[i] = 0
+      #  }
+      #  if (!is.na(ct@data@values[i])){
+      #    ct@data@values[i] = (ct@data@values[i] / max)
+      #  }
+      #}
+      #return(ct)
+      
     }
     else {
       dat = spatial_bias_data();
