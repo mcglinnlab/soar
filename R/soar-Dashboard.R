@@ -240,7 +240,12 @@ server <- function(input, output) {
   
   output$data_ID_return <- renderText({paste("Your ID for finding this data again:", retrieve_data_ID())})
   retrieve_data_ID <- eventReactive(input$do_ID, {return(data_ID)})
-  retrieve_data_citation <- eventReactive(input$do_ID, {return(gbif_citation(data_meta)$datasets[[1]]$citation$citation)})
+  retrieve_data_citation <- eventReactive(input$do_ID, {
+    if (typeof(data_meta) == "logical"){
+      return("A citation cannot be created from an uploaded file")
+    }
+    return(gbif_citation(data_meta)$datasets[[1]]$citation$citation)
+    })
   output$data_citation_return <- renderText({retrieve_data_citation()})
   
   gbif_data <- eventReactive(input$do, {
@@ -248,8 +253,10 @@ server <- function(input, output) {
     if (input$input_file_checkbox){
     data_file_name = input$file_name
     }
+    else { #to make sure this doesn't run when a file is uploaded (to work w/o internet)
     #filter by name
     sp_key <- name_suggest(q =input$species_name, rank = input$rank)$key[1]
+    }
     #filter by country
     if (input$political_checkbox){ country <- input$political_boundary}
     #filter by date
@@ -290,9 +297,9 @@ server <- function(input, output) {
     if (input$input_file_checkbox) {
       #Works, but says file does not exist
       file = substring(data_file_name,1,23)
-      data_ID <<- file #update the citation info
+      data_ID <<- "A key cannot be determined from an uploaded file" #update the citation info
       dat <- occ_download_import(key = file)
-      data_meta <<- occ_download_get(key = file, overwrite = TRUE)
+      data_meta <<- FALSE
       return(dat)
     }
     else if (input$down_key_checkbox){
