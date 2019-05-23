@@ -214,10 +214,15 @@ ui <- dashboardPage(
                   h5("The map below shows the occurrences in the selected dataset (black) overlaid with the dataset 
                       specified in the boxes above the map(red). Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another.",
+                     radioButtons("spat_bias_comp_data", label = "Spatial Bias Comparison Dataset",
+                                  choices = list("Full GBIF Database (Works without Internet)" = 1, "Specific Dataset" = 2), 
+                                  selected = 2),
+                     conditionalPanel( condition = "input.spat_bias_comp_data == 2",
                      textInput("bias_name", "Latin name", "Caretta caretta"),
                      selectInput("bias_rank", "Taxonomic rank", 
                                  choices = list("Species" = "Species","Genus" = "Genus", "Family" = "Family","Order" = "Order", 
-                                                "Class" = "Class", "Phylum" = "Phylum", "Kingdom" = "Kingdom"), selected = "Species"),
+                                                "Class" = "Class", "Phylum" = "Phylum", "Kingdom" = "Kingdom"), selected = "Species")
+                     ),
                      actionButton("spatial_do", "Use this dataset for spatial bias comparison"), h4(),
                      withSpinner(leafletOutput("spatial_bias_map")) ),
                   h5("The plot below shows the correlation between the percent of total observations
@@ -513,15 +518,27 @@ server <- function(input, output) {
   )
   
   #gets data for spatial bias plot
+  # 1 == full gbif database
+  # 2 == specified database
   spatial_bias_data <- eventReactive(input$spatial_do,{
+    if (input$spat_bias_comp_data == 2){
       latin_name <- input$bias_name
       rank <- input$bias_rank
       sp_key <- name_suggest(q =latin_name, rank = rank)$key[1]
       #This line is supposed to retrieve the actual data, 
-      all_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857")
+      spec_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857")
       fullDat <- occ_download_import(key = "0019554-181003121212138") #so the code doesn't crash
-      return(fullDat) # should return all_data_raster eventually
-      #return(all_data_raster)
+      return(fullDat) # should return spec_data_raster eventually
+      #return(spec_data_raster)
+    }
+    else {
+      #Full_Data_Raster <- map_fetch(srs = "EPSG:3857")
+      #writeRaster(x = Full_Data_Raster, filename = "full_GBIF_mapfetch.grd", format = "raster")
+      full_data_raster <- raster("full_GBIF_mapfetch.grd")
+      fullDat <- occ_download_import(key = "0019554-181003121212138") #so the code doesn't crash
+      return(fullDat) #should be changed  to full_data_raster eventually
+      #return(full_data_raster)
+    }
   })
   
   #Currenlty just gets the data for the graph ready
