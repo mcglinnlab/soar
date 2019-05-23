@@ -121,7 +121,9 @@ ui <- dashboardPage(
   #show results here
   dashboardBody(
     tabsetPanel(
-      tabPanel("Map", withSpinner(leafletOutput("world_map"))),
+      tabPanel("Map",
+               downloadButton('download_dataset_params', label = "Download Parameters used to find this data"), 
+               withSpinner(leafletOutput("world_map"))),
       #now also gives the ID for citing the data
       tabPanel("Raw Data", DT::dataTableOutput("raw_data")),
       tabPanel("Download Raw Data", textOutput("data_ID_return"), h4(""), h4("Citation:"), textOutput("data_citation_return"), actionButton("do_ID", "Refresh Data ID for citations"),
@@ -744,6 +746,51 @@ server <- function(input, output) {
       cat(paste("Output Type :", currVar, "\n"))
       sink()
       #file.show(clean_data_parameters_file) #just for debugging/checking accuracy
+      }
+    )
+  
+  output$download_dataset_params <- downloadHandler(
+    filename = function(){"Dataset_Parameters.txt"},
+    content = function(file){
+      sink(file)
+      cat(paste("Parameters used to create dataset", data_ID, "\n\n"))
+      if (input$input_file_checkbox) {
+        cat("this data was uploaded from a previously downloaded file, the parameters cannot be determined")
+      }
+      else if (input$down_key_checkbox){
+        cat("this data was redownloaded, and the parameters of the origional search cannot be determined")
+      }
+      else{
+        spName <- input$species_name
+        cat(paste("Searched: ", spName,"as a",input$rank, "\n"))
+        #filter by country
+        if (input$political_checkbox){ 
+        country <- input$political_boundary
+        cat(paste("Country searched:", country, "\n"))
+        }
+        #filter by date
+        if (input$date_checkbox){
+        to_m <- substr(input$to_date, 6,7)
+        from_m<- substr(input$from_date, 6,7)
+        to_y <- substr(input$to_date, 1, 4)
+        from_y <- substr(input$from_date, 1, 4)
+        cat(paste("Date Constrainte:  From->", from_m, from_y, "To ->", to_m, to_y, "\n"))
+      }
+        #filter by lat/long
+        if (input$lat_long_check_box){
+          if (is.null(input$Lat_low ) ||  is.null(input$Lat_high) ||  is.null(input$Long_low) || is.null(input$Long_high)){
+          }
+          else{
+            low_lat <- input$Lat_low
+            high_lat <- input$Lat_high
+            low_long <- input$Long_low
+            high_long <- input$Long_high
+            cat(paste("Longitudinal Constraints:", low_long, high_long, "\n"))
+            cat(paste("Latitudinal Constraints:", low_lat, high_lat, "\n"))
+          }
+        }
+      }
+      sink()
       }
     )
   
