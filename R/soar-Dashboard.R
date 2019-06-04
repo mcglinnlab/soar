@@ -12,6 +12,7 @@ library(raster)  #for working with rasters
 library(shinycssloaders)  #This makes the loading symbols
 library(CoordinateCleaner)  #Cleans the Data
 library(rnaturalearth)  #Maps for leaflet
+#library(mapview) #for downloading leaflet map
 
 choice <- function(input_num) {
   Gbif_fields <- read.csv("../data/gbif_fields.csv", as.is = TRUE)
@@ -57,6 +58,7 @@ choice <- function(input_num) {
 data_ID <- "" #holds the citation info
 data_meta <- "" #holds data for getting citation
 clean_data_exists <- FALSE #holds a boolean for telling if cleaned data has been created
+clean_bias_data <- "" #holds the cleaned data once created
 #create a user interface
 ui <- dashboardPage(
   #App title
@@ -123,10 +125,13 @@ ui <- dashboardPage(
     tabsetPanel(
       tabPanel("Map",
                downloadButton('download_dataset_params', label = "Download Parameters used to find this data"), 
-               withSpinner(leafletOutput("world_map"))),
+               withSpinner(leafletOutput("world_map"))
+               #, actionButton('map_do', "Download This Map")
+               ),
       #now also gives the ID for citing the data
       tabPanel("Raw Data", DT::dataTableOutput("raw_data")),
-      tabPanel("Download Raw Data", textOutput("data_ID_return"), h4(""), h4("Citation:"), textOutput("data_citation_return"), actionButton("do_ID", "Refresh Data ID for citations"),
+      tabPanel("Download Raw Data", textOutput("data_ID_return"), h4(""), h4("Citation:"), 
+               textOutput("data_citation_return"), actionButton("do_ID", "Refresh Data ID for citations"),
                radioButtons("table_cols", label = "Columns in Downloadable table",
                                   choices = list("Minimal" = 1, "Default" = 2, "All Columns" = 3, "Custom" = 4), 
                                   selected = 1),
@@ -230,9 +235,7 @@ ui <- dashboardPage(
                   h5("The plot below shows the correlation between the percent of total observations
                      per map pixel for the selected dataset and the percent of total observations per
                      map pixel for the comparison dataset selected above. Take this into consideration when 
-                     comparing how many occurrences are reported in one area rather than another.
-                     Note that, due to the fact that any data pulled from Gbif is a subset of their
-                     database, no points can appear to the left of the line drawn",
+                     comparing how many occurrences are reported in one area rather than another.",
                      withSpinner(plotOutput("spatial_bias_plot")))),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
@@ -250,8 +253,11 @@ server <- function(input, output) {
   retrieve_data_citation <- eventReactive(input$do_ID, {
     if (typeof(data_meta) == "logical"){
       return("A citation cannot be created from an uploaded file")
+    } 
+    else {
+      data_meta <<- occ_download_meta(data_ID)
+    return(gbif_citation(data_meta)$download)
     }
-    return(gbif_citation(data_meta)$datasets[[1]]$citation$citation)
     })
   output$data_citation_return <- renderText({retrieve_data_citation()})
   
@@ -341,7 +347,6 @@ server <- function(input, output) {
     
     #updates the data_ID
     data_ID <<- toString(res)
-    data_meta <<- occ_download_meta(res)
 #loops so that it checks every 30 seconds to see if meta$status is "SUCCEEDED" or "KILLED"
     while(continue){
       meta = occ_download_meta(res)
@@ -368,9 +373,8 @@ server <- function(input, output) {
 #Display Cleaned Dataset based on criteria  
   output$clean_data <- DT::renderDataTable(expr = clean_info(),options=list(autoWidth = TRUE,scrollX=TRUE))
   
-  #Clean Data based on input - also creates text document with parameters
+  #Clean Data based on input
   clean_info <- eventReactive(input$do_clean, {
-    clean_data_exists <<- TRUE 
     #call Coordinate Cleaner
     dat = CleanCoordinates(x= gbif_data(),lon = "decimalLongitude", lat = "decimalLatitude",
                            species = "species", countries = "countryCode",
@@ -407,18 +411,47 @@ server <- function(input, output) {
     )
     return(dat)
   })
-  set_clean_boolean <- eventReactive(input$do_clean, {
-    clean_data_exists <<- TRUE
-    })
   
   #tells the user if cleaned data is not available
   output$cleaned_bias_boolean <- renderText({cleaned_boolean_check()})
   
   #resets cleaned data boolean variable if the input$do button is pressed again
-  reset_clean_data_boolean <- eventReactive(input$do,{
+  observeEvent(input$do, {
     clean_data_exists <<- FALSE
     })
   
+  #updates clean_data boolean when cleaned data is created and stores the info
+  observeEvent( input$do_clean, {
+    clean_data_exists <<- TRUE
+    dat = CleanCoordinates(x= gbif_data(),lon = "decimalLongitude", lat = "decimalLatitude",
+                           species = "species", countries = "countryCode",
+                           capitals = input$cap_prox_box,
+                           centroids = input$cen_prox_box,
+                           countrycheck = input$lat_long_check,
+                           duplicates = input$rec_dup,
+                           equal = input$iden_lat_long,
+                           GBIF = input$gbif_prox,
+                           institutions = input$bio_prox,
+                           outliers = input$out_box,
+                           seas = input$sea_box,
+                           urban = FALSE,
+                           zeros = input$equ_zero_zero,
+                           capitals.rad = input$cap_rad,
+                           centroids.rad = input$cen_rad,
+                           centroids.detail = cen_detail_val(),
+                           inst.rad = input$inst_rad,
+                           outliers.method = out_type_val(),
+                           outliers.mtp = input$out_mtp,
+                           outliers.td = input$out_td,
+                           outliers.size = input$out_size,
+                           zeros.rad = input$zero_rad,
+                           value = "clean",
+                           verbose = FALSE,
+                           report = FALSE)
+    clean_bias_data <<- dat
+    })
+  
+  #tells user if clean data exists when they try to use it for the bias tab
   cleaned_boolean_check <- eventReactive(input$cleaned_bias == TRUE, {
     if (clean_data_exists && input$cleaned_bias == TRUE){
       return("")
@@ -474,9 +507,21 @@ server <- function(input, output) {
     }
     }
   
+  #gives the proper data to the bias functions
+  bias_data <- function(){
+    if (clean_data_exists && input$cleaned_bias == TRUE){
+      dat <- clean_bias_data
+      return(dat)
+      }
+    else{
+      dat <- gbif_data()
+      return(dat)
+      }
+    }
+  
   #Determine percentages of the dataset that was collected prior to 1990,1970, and 1950
   temporal_bias <- function(num){
-    dat = gbif_data()
+    dat = bias_data()
     #narrow dat down so that it only contains the years
     year = dat$year
     pre1990 = 0
@@ -529,7 +574,7 @@ server <- function(input, output) {
       sp_key <- name_suggest(q =latin_name, rank = rank)$key[1]
       #This line is supposed to retrieve the actual data, 
       spec_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857")
-      fullDat <- occ_download_import(key = "0019554-181003121212138") #so the code doesn't crash
+      fullDat <- occ_download_import(key = "0019660-190415153152247") #so the code doesn't crash
       return(fullDat) # should return spec_data_raster eventually
       #return(spec_data_raster)
     }
@@ -537,7 +582,7 @@ server <- function(input, output) {
       #Full_Data_Raster <- map_fetch(srs = "EPSG:3857")
       #writeRaster(x = Full_Data_Raster, filename = "full_GBIF_mapfetch.grd", format = "raster")
       full_data_raster <- raster("full_GBIF_mapfetch.grd")
-      fullDat <- occ_download_import(key = "0019554-181003121212138") #so the code doesn't crash
+      fullDat <- occ_download_import(key = "0019660-190415153152247") #so the code doesn't crash
       return(fullDat) #should be changed  to full_data_raster eventually
       #return(full_data_raster)
     }
@@ -548,14 +593,14 @@ server <- function(input, output) {
   # 2- species of interest observations per year
   # 3- full dataset observations per year
   temporal_bias_data <-function(num){
-    dat <- gbif_data()$year
+    dat <- bias_data()$year
     currYear <- as.numeric(substring(Sys.Date(),1,4));
     #FILL IN FOR FULL DATA LATER
     if (num == 3){
       #Doing this rather than the whole download sequence allows it to read the 
       #file (of the same name as the key) rather than downloading the dataset again.
       #This also speeds up the code significantly
-    fullDat <- occ_download_import(key = "0019554-181003121212138") 
+    fullDat <- occ_download_import(key = "0019660-190415153152247") 
     fullDat <- fullDat$year
     fullDatYear <- list()
     
@@ -583,15 +628,16 @@ server <- function(input, output) {
   
   output$temporal_bias_plot <- renderPlot({
     Year <-temporal_bias_data(1)
-    plot(Year, temporal_bias_data(2), type = "l")
+    Number_Of_Observations <-  temporal_bias_data(2)
+    plot(Year, Number_Of_Observations , type = "l")
   })
   
   #Output a plot that shows the range of where all Gbif data is from Vs. where 
   #only the selected data is from
   output$spatial_bias_map <- renderLeaflet({
     #Full Data -> spatial_bias_data() -- red
-    #Sample Data -> gbif_data() -- black
-    selected_data <- gbif_data()
+    #Sample Data -> bias_data() -- black
+    selected_data <- bias_data()
     leaflet(spatial_bias_data()) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       
@@ -628,7 +674,7 @@ server <- function(input, output) {
     # 1 = downloaded dataset
     # 2 = Full dataset
     if (input == "selected_sp"){
-      dat = gbif_data();
+      dat = bias_data();
       crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
       crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
       r = raster(nrows=116, ncols=364, xmn=-20037.51, xmx=20002.49, ymn=-6396.115,
@@ -794,6 +840,19 @@ server <- function(input, output) {
       }
     )
   
+  #currently saves it with the package files... not accessable to the user
+  #How to make it accessable to user?
+  #observeEvent( input$map_do,{
+  #    map <- leaflet(gbif_data()) %>%
+  #      addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
+  #      
+  #      addCircleMarkers(lng = ~ decimalLongitude, lat = ~ decimalLatitude,
+  #                       radius = 3,
+  #                       color = 'red',
+  #                       stroke = FALSE, fillOpacity = 0.5
+  #      )
+  #      mapview::mapshot(map, file = "Occurrence_Map.png", selfcontained = FALSE )
+  #  })
 
   output$download_clean_data <- downloadHandler(
     filename = function(){"CleanGbifDat.csv"},
