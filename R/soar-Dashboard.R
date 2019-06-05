@@ -222,7 +222,7 @@ ui <- dashboardPage(
                       specified in the boxes above the map(red). Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another.",
                      radioButtons("spat_bias_comp_data", label = "Spatial Bias Comparison Dataset",
-                                  choices = list("Full GBIF Database (Works without Internet)" = 1, "Specific Dataset" = 2), 
+                                  choices = list("Full GBIF Database" = 1, "Specific Dataset" = 2), 
                                   selected = 2),
                      conditionalPanel( condition = "input.spat_bias_comp_data == 2",
                      textInput("bias_name", "Latin name", "Caretta caretta"),
