@@ -210,7 +210,7 @@ ui <- dashboardPage(
       tabPanel("Detect Bias",
                checkboxInput("cleaned_bias", label = "Use cleaned data in this tab", value = FALSE),
                textOutput("cleaned_bias_boolean"),
-               h4("Temporal Bias", h5("Information can become less accurate depending on when it was collected. These percentages are for refrence in determining the accuracy of your dataset."),
+               h4("Temporal Distribution", h5("Information can become less accurate depending on when it was collected. These percentages are for refrence in determining the accuracy of your dataset."),
                   h6(textOutput("pre1950"),"% of the dataset was collected before 1950"),
                   h6(textOutput("pre1970"),"% of the dataset was collected before 1970"),
                   h6(textOutput("pre1990"),"% of the dataset was collected before 1990")),
@@ -376,39 +376,44 @@ server <- function(input, output) {
   #Clean Data based on input
   clean_info <- eventReactive(input$do_clean, {
     #call Coordinate Cleaner
-    dat = CleanCoordinates(x= gbif_data(),lon = "decimalLongitude", lat = "decimalLatitude",
-                           species = "species", countries = "countryCode",
-                           capitals = input$cap_prox_box,
-                           centroids = input$cen_prox_box,
-                           countrycheck = input$lat_long_check,
-                           duplicates = input$rec_dup,
-                           equal = input$iden_lat_long,
-                           GBIF = input$gbif_prox,
-                           institutions = input$bio_prox,
-                           outliers = input$out_box,
-                           seas = input$sea_box,
-                           urban = FALSE,
-                           zeros = input$equ_zero_zero,
-                           capitals.rad = input$cap_rad,
-                           centroids.rad = input$cen_rad,
-                           centroids.detail = cen_detail_val(),
-                           inst.rad = input$inst_rad,
-                           outliers.method = out_type_val(),
-                           outliers.mtp = input$out_mtp,
-                           outliers.td = input$out_td,
-                           outliers.size = input$out_size,
-                           zeros.rad = input$zero_rad,
-                           value = value_input_val(),
- #PROVIDE THESE-?         
-                           #capitals.ref = ,
-                           #centroids.ref = ,
-                           #country.ref = ,
-                           #inst.ref = ,
-                           #seas.ref = ,
-                           #urban.ref = ,
-                           verbose = FALSE,
-                           report = FALSE
-    )
+    selected_tests = NULL
+    if (input$cap_prox_box){ selected_tests = c(selected_tests, "capitals")}
+    if (input$cen_prox_box){selected_tests = c(selected_tests, "centroids")}
+    if (input$lat_long_check){selected_tests = c(selected_tests, "countries")}
+    if (input$rec_dup){selected_tests = c(selected_tests, "duplicates")}
+    if (input$iden_lat_long){selected_tests = c(selected_tests, "equal")}
+    if (input$gbif_prox){selected_tests = c(selected_tests, "gbif")}
+    if (input$bio_prox){selected_tests = c(selected_tests, "institutions")}
+    if (input$out_box){selected_tests = c(selected_tests, "outliers")}
+    if (input$sea_box){selected_tests = c(selected_tests, "seas")}
+    if (input$equ_zero_zero){selected_tests = c(selected_tests, "zeros")}
+    
+    
+    dat = clean_coordinates(x = gbif_data(), lon = "decimalLongitude", lat = "decimalLatitude",
+                            species = "species",
+                            countries = "countryCode",
+                            tests = selected_tests,
+                            capitals_rad = input$cap_rad, 
+                            centroids_rad = input$cen_rad,
+                            centroids_detail = cen_detail_val(), 
+                            inst_rad = input$inst_rad,
+                            outliers_method = out_type_val(), 
+                            outliers_mtp = input$out_mtp, 
+                            outliers_td = input$out_td,
+                            outliers_size = input$out_size, 
+                            #range_rad = 0, #not using
+                            zeros_rad = input$zero_rad,
+                            #capitals_ref = NULL, 
+                            #centroids_ref = NULL, 
+                            #country_ref = NULL,
+                            #inst_ref = NULL, 
+                            #range_ref = NULL, #no
+                            #seas_ref = NULL,
+                            #seas_scale = 50, #not gonna happen
+                            #urban_ref = NULL, 
+                            value = value_input_val(),
+                            verbose = FALSE, 
+                            report = FALSE)
     return(dat)
   })
   
@@ -422,32 +427,45 @@ server <- function(input, output) {
   
   #updates clean_data boolean when cleaned data is created and stores the info
   observeEvent( input$do_clean, {
+    selected_tests = NULL
+    if (input$cap_prox_box){ selected_tests = c(selected_tests, "capitals")}
+    if (input$cen_prox_box){selected_tests = c(selected_tests, "centroids")}
+    if (input$lat_long_check){selected_tests = c(selected_tests, "countries")}
+    if (input$rec_dup){selected_tests = c(selected_tests, "duplicates")}
+    if (input$iden_lat_long){selected_tests = c(selected_tests, "equal")}
+    if (input$gbif_prox){selected_tests = c(selected_tests, "gbif")}
+    if (input$bio_prox){selected_tests = c(selected_tests, "institutions")}
+    if (input$out_box){selected_tests = c(selected_tests, "outliers")}
+    if (input$sea_box){selected_tests = c(selected_tests, "seas")}
+    if (input$equ_zero_zero){selected_tests = c(selected_tests, "zeros")}
+    
+    
+    dat = clean_coordinates(x = gbif_data(), lon = "decimalLongitude", lat = "decimalLatitude",
+                            species = "species",
+                            countries = "countryCode",
+                            tests = selected_tests,
+                            capitals_rad = input$cap_rad, 
+                            centroids_rad = input$cen_rad,
+                            centroids_detail = cen_detail_val(), 
+                            inst_rad = input$inst_rad,
+                            outliers_method = out_type_val(), 
+                            outliers_mtp = input$out_mtp, 
+                            outliers_td = input$out_td,
+                            outliers_size = input$out_size, 
+                            #range_rad = 0, #not using
+                            zeros_rad = input$zero_rad,
+                            #capitals_ref = NULL, 
+                            #centroids_ref = NULL, 
+                            #country_ref = NULL,
+                            #inst_ref = NULL, 
+                            #range_ref = NULL,
+                            #seas_ref = NULL,
+                            #seas_scale = 50, 
+                            #urban_ref = NULL, 
+                            value = value_input_val(),
+                            verbose = FALSE, 
+                            report = FALSE)
     clean_data_exists <<- TRUE
-    dat = CleanCoordinates(x= gbif_data(),lon = "decimalLongitude", lat = "decimalLatitude",
-                           species = "species", countries = "countryCode",
-                           capitals = input$cap_prox_box,
-                           centroids = input$cen_prox_box,
-                           countrycheck = input$lat_long_check,
-                           duplicates = input$rec_dup,
-                           equal = input$iden_lat_long,
-                           GBIF = input$gbif_prox,
-                           institutions = input$bio_prox,
-                           outliers = input$out_box,
-                           seas = input$sea_box,
-                           urban = FALSE,
-                           zeros = input$equ_zero_zero,
-                           capitals.rad = input$cap_rad,
-                           centroids.rad = input$cen_rad,
-                           centroids.detail = cen_detail_val(),
-                           inst.rad = input$inst_rad,
-                           outliers.method = out_type_val(),
-                           outliers.mtp = input$out_mtp,
-                           outliers.td = input$out_td,
-                           outliers.size = input$out_size,
-                           zeros.rad = input$zero_rad,
-                           value = "clean",
-                           verbose = FALSE,
-                           report = FALSE)
     clean_bias_data <<- dat
     })
   
