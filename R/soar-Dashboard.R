@@ -217,6 +217,8 @@ ui <- dashboardPage(
                   h5(), #For a new line
                   h5("The plot below shows the number of observtions in the current dataset per year. Take this into consideration when comparing
                      the number of observations from one year to another.", withSpinner(plotOutput("temporal_bias_plot"))),
+                  h5("The plot below shows the number of observations per month to show the temporal patterns on a more specific scale.",
+                     withSpinner(plotOutput("temporal_bias_month_plot")),
                h4("Spatial Bias"),
                   h5("The map below shows the occurrences in the selected dataset (black) overlaid with the dataset 
                       specified in the boxes above the map(red). Take this into consideration when 
