@@ -217,8 +217,9 @@ ui <- dashboardPage(
                   h5(), #For a new line
                   h5("The plot below shows the number of observtions in the current dataset per year. Take this into consideration when comparing
                      the number of observations from one year to another.", withSpinner(plotOutput("temporal_bias_plot"))),
-                  h5("The plot below shows the number of observations per month to show the temporal patterns on a more specific scale.",
-                     withSpinner(plotOutput("temporal_bias_month_plot")),
+                  h5("The plot below shows the number of observations per month to show the temporal patterns on a more specific scale.
+                     Take this into account when considering the habits of the organism versus the patterns shown in the data",
+                     withSpinner(plotOutput("temporal_bias_month_plot"))),
                h4("Spatial Bias"),
                   h5("The map below shows the occurrences in the selected dataset (black) overlaid with the dataset 
                       specified in the boxes above the map(red). Take this into consideration when 
@@ -612,7 +613,20 @@ server <- function(input, output) {
   # 1- list of years 
   # 2- species of interest observations per year
   # 3- full dataset observations per year
+  # 4- Monthly occurrence data
   temporal_bias_data <-function(num){
+    if (num == 4) {
+      month_dat <- bias_data()$month
+      month <- vector(length = 12)
+      for (i in 1:12){
+        month[i] = 0
+      }
+      for (i in 1:length(x)) {
+        month[month_dat[i]] = month[month_dat[i]] + 1
+      }
+      plot <- barplot(month, main = "Proportion of occurrences per month", xlab = "Month")
+      return(plot)
+    }
     dat <- bias_data()$year
     currYear <- as.numeric(substring(Sys.Date(),1,4));
     #FILL IN FOR FULL DATA LATER
@@ -650,6 +664,10 @@ server <- function(input, output) {
     Year <-temporal_bias_data(1)
     Number_Of_Observations <-  temporal_bias_data(2)
     plot(Year, Number_Of_Observations , type = "l")
+  })
+  
+  output$temporal_bias_month_plot <- renderPlot({
+    return(temporal_bias_data(4))
   })
   
   #Output a plot that shows the range of where all Gbif data is from Vs. where 
