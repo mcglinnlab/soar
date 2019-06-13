@@ -378,6 +378,7 @@ server <- function(input, output) {
   
   #Clean Data based on input
   clean_info <- eventReactive(input$do_clean, {
+    tryCatch({
     #call Coordinate Cleaner
     selected_tests = NULL
     if (input$cap_prox_box){ selected_tests = c(selected_tests, "capitals")}
@@ -418,6 +419,12 @@ server <- function(input, output) {
                             verbose = FALSE, 
                             report = FALSE)
     return(dat)
+    },
+    warning = function(w){return("An error has occurred, the dataset is too large to clean")},
+    error = function(e){
+      x <- matrix(c("An error has occurred", "the dataset is too large to clean"))
+      return(x)}
+    )
   })
   
   #tells the user if cleaned data is not available
@@ -430,6 +437,7 @@ server <- function(input, output) {
   
   #updates clean_data boolean when cleaned data is created and stores the info
   observeEvent( input$do_clean, {
+    tryCatch({
     selected_tests = NULL
     if (input$cap_prox_box){ selected_tests = c(selected_tests, "capitals")}
     if (input$cen_prox_box){selected_tests = c(selected_tests, "centroids")}
@@ -470,6 +478,10 @@ server <- function(input, output) {
                             report = FALSE)
     clean_data_exists <<- TRUE
     clean_bias_data <<- dat
+    },
+    warning = function(w){return("An error has occurred, the dataset is too large to clean")},
+    error = function(e){return("An error has occurred, the dataset is too large to clean")}
+    )
     })
   
   #tells user if clean data exists when they try to use it for the bias tab
@@ -478,7 +490,7 @@ server <- function(input, output) {
       return("")
     }
     if (clean_data_exists == FALSE && input$cleaned_bias == TRUE){
-      return("Cleaned dataset has not yet been created, see Clean Data tab and Download Cleaned Data Tab")
+      return("Cleaned dataset has not been or cannot be created, see Clean Data tab and Download Cleaned Data Tab")
       }
     
     })
