@@ -158,13 +158,13 @@ ui <- dashboardPage(
                checkboxInput("cap_prox_box", label = "Proximity to capitals", value = FALSE),
                checkboxInput("cen_prox_box", label = "Proximity to country centroids", value = FALSE),
                checkboxInput("lat_long_check", label = "Actual coordinate location vs. country specified by the data (It is recomended that this not be selected if oceanic species are involved)", value = FALSE),
-               checkboxInput("rec_dup", label = "Duplications of records", value = FALSE), 
-               checkboxInput("iden_lat_long", label = "Records with identical coordinates", value = FALSE),
+               checkboxInput("rec_dup", label = "Duplications of records", value = TRUE), 
+               checkboxInput("iden_lat_long", label = "Records with identical coordinates", value = TRUE),
                checkboxInput("gbif_prox", label = "Proximity to Gbif headquarters", value = FALSE),
                checkboxInput("bio_prox", label = "Proximity to biodiversity institutions", value = FALSE),
                checkboxInput("out_box", label = "Outliers", value = FALSE),
                checkboxInput("sea_box", label = "Locaton relative to the oceans (check if records include only terrestrial organisms)", value = FALSE),
-               checkboxInput("equ_zero_zero", label = "Equal latitude and longitude, plain zeros, and proximity to point 0/0", value = FALSE),
+               checkboxInput("equ_zero_zero", label = "Equal latitude and longitude, plain zeros, and proximity to point 0/0", value = TRUE),
               
                
               #These are conditional, only available if their corresponding box is checked
@@ -207,10 +207,10 @@ ui <- dashboardPage(
                #verbose = False
               actionButton("do_clean", "Submit")
                ),
-      tabPanel("Detect Bias",
+      tabPanel("Coverage Estimation",
                checkboxInput("cleaned_bias", label = "Use cleaned data in this tab", value = FALSE),
                textOutput("cleaned_bias_boolean"),
-               h4("Temporal Distribution", h5("Information can become less accurate depending on when it was collected. These percentages are for refrence in determining the accuracy of your dataset."),
+               h4("Temporal Coverage", h5("Information can become less accurate depending on when it was collected. These percentages are for refrence in determining the accuracy of your dataset."),
                   h6(textOutput("pre1950"),"% of the dataset was collected before 1950"),
                   h6(textOutput("pre1970"),"% of the dataset was collected before 1970"),
                   h6(textOutput("pre1990"),"% of the dataset was collected before 1990")),
@@ -220,7 +220,7 @@ ui <- dashboardPage(
                   h5("The plot below shows the number of observations per month to show the temporal patterns on a more specific scale.
                      Take this into account when considering the habits of the organism versus the patterns shown in the data",
                      withSpinner(plotOutput("temporal_bias_month_plot"))),
-               h4("Spatial Bias"),
+               h4("Spatial Coverage"),
                   h5("The map below shows the occurrences in the selected dataset (black) overlaid with the dataset 
                       specified in the boxes above the map(red). Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another.",
@@ -233,7 +233,7 @@ ui <- dashboardPage(
                                  choices = list("Species" = "Species","Genus" = "Genus", "Family" = "Family","Order" = "Order", 
                                                 "Class" = "Class", "Phylum" = "Phylum", "Kingdom" = "Kingdom"), selected = "Species")
                      ),
-                     actionButton("spatial_do", "Use this dataset for spatial bias comparison"), h4(),
+                     actionButton("spatial_do", "Use this dataset for spatial coverage comparison"), h4(),
                      withSpinner(leafletOutput("spatial_bias_map")) ),
                   h5("The plot below shows the correlation between the percent of total observations
                      per map pixel for the selected dataset and the percent of total observations per
