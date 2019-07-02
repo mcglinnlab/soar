@@ -215,6 +215,8 @@ ui <- dashboardPage(
                   h6(textOutput("pre1970"),"% of the dataset was collected before 1970"),
                   h6(textOutput("pre1990"),"% of the dataset was collected before 1990")),
                   h5(), #For a new line
+                  h5("Temporal Coverage Estimate:", "(Large negative numbers indicate low temporal coverage)"),
+                  h5(), #For a new line
                   h5("The plot below shows the number of observtions in the current dataset per year. Take this into consideration when comparing
                      the number of observations from one year to another.", withSpinner(plotOutput("temporal_bias_plot"))),
                   h5("The plot below shows the number of observations per month to show the temporal patterns on a more specific scale.
@@ -239,7 +241,13 @@ ui <- dashboardPage(
                      per map pixel for the selected dataset and the percent of total observations per
                      map pixel for the comparison dataset selected above. Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another.",
-                     withSpinner(plotOutput("spatial_bias_plot")))),
+                     withSpinner(plotOutput("spatial_bias_plot"))), 
+                  h5("The plot below shows a comparison betweeen the density of the species of interest and
+                     the density of the comparison dataset selected above. Points in the lower right of the graph, where
+                     there is much sampling for the comparison set but less for the species of interest, are likely true
+                     zeroes. Points in the lower left, however, may be undersampled. ",
+                     withSpinner(plotOutput("spatial_coverage_plot")))
+               ),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
                downloadButton('download_clean_data_params', label = "Download text document with parameters used to create this table"),
@@ -715,6 +723,8 @@ server <- function(input, output) {
     legend("topleft", paste("r = ", corr),bty = "n")
     abline(a=0,b=1)
   })
+  
+  output$spatial_coverage_plot <- renderPlot({})
   
   #Create a rasta file that can be used in a comparison graph for how many 
   #results are in a cell per gbif vs. how many results are in a cell for 
