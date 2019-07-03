@@ -219,6 +219,7 @@ ui <- dashboardPage(
                   h5(), #For a new line
                   h5("The plot below shows the number of observtions in the current dataset per year. Take this into consideration when comparing
                      the number of observations from one year to another.", withSpinner(plotOutput("temporal_bias_plot"))),
+                  sliderInput("temporal_slider", label = "X Axis Limits - Years displayed on plot above", min = 1600, max = as.numeric(substr(Sys.Date(),1,4)), value = c(1600, as.numeric(substr(Sys.Date(),1,4)))),
                   h5("The plot below shows the number of observations per month to show the temporal patterns on a more specific scale.
                      Take this into account when considering the habits of the organism versus the patterns shown in the data",
                      withSpinner(plotOutput("temporal_bias_month_plot"))),
@@ -683,7 +684,7 @@ server <- function(input, output) {
   output$temporal_bias_plot <- renderPlot({
     Year <-temporal_bias_data(1)
     Number_Of_Observations <-  temporal_bias_data(2)
-    plot(Year, Number_Of_Observations , type = "l")
+    plot(Year, Number_Of_Observations , type = "l", xlim = input$temporal_slider)
   })
   
   output$temporal_bias_month_plot <- renderPlot({
