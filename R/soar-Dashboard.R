@@ -642,7 +642,7 @@ server <- function(input, output) {
       for (i in 1:12){
         month[i] = 0
       }
-      for (i in 1:length(x)) {
+      for (i in 1:length(month_dat)) {
         month[month_dat[i]] = month[month_dat[i]] + 1
       }
       plot <- barplot(month, main = "Proportion of occurrences per month", xlab = "Month")
