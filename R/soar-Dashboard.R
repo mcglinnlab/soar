@@ -224,8 +224,8 @@ ui <- dashboardPage(
                      Take this into account when considering the habits of the organism versus the patterns shown in the data",
                      withSpinner(plotOutput("temporal_bias_month_plot"))),
                h4("Spatial Coverage"),
-                  h5("The map below shows the occurrences in the selected dataset (black) overlaid with the dataset 
-                      specified in the boxes above the map(red). Take this into consideration when 
+                  h5("The map below shows the occurrences in the selected dataset (red) overlaid with the dataset 
+                      specified in the boxes above the map(grey). Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another.",
                      radioButtons("spat_bias_comp_data", label = "Spatial Bias Comparison Dataset",
                                   choices = list("Full GBIF Database" = 1, "Specific Dataset" = 2), 
@@ -616,17 +616,19 @@ server <- function(input, output) {
       sp_key <- name_suggest(q =latin_name, rank = rank)$key[1]
       #This line is supposed to retrieve the actual data, 
       spec_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857")
-      fullDat <- occ_download_import(key = "0019660-190415153152247") #so the code doesn't crash
-      return(fullDat) # should return spec_data_raster eventually
-      #return(spec_data_raster)
+      spec_data_raster <- setExtent(spec_data_raster, extent(-20037508, 20037508, -20037508, 20037508))
+      #fullDat <- occ_download_import(key = "0019660-190415153152247") #so the code doesn't crash
+      #return(fullDat) # should return spec_data_raster eventually
+      return(spec_data_raster)
     }
     else {
       #Full_Data_Raster <- map_fetch(srs = "EPSG:3857")
       #writeRaster(x = Full_Data_Raster, filename = "full_GBIF_mapfetch.grd", format = "raster")
       full_data_raster <- raster("full_GBIF_mapfetch.grd")
-      fullDat <- occ_download_import(key = "0019660-190415153152247") #so the code doesn't crash
-      return(fullDat) #should be changed  to full_data_raster eventually
-      #return(full_data_raster)
+      full_data_raster <- setExtent(full_data_raster, extent(-20037508, 20037508, -20037508, 20037508))
+      #fullDat <- occ_download_import(key = "0019660-190415153152247") #so the code doesn't crash
+      #return(fullDat) #should be changed  to full_data_raster eventually
+      return(full_data_raster)
     }
   })
   
@@ -694,17 +696,17 @@ server <- function(input, output) {
   #Output a plot that shows the range of where all Gbif data is from Vs. where 
   #only the selected data is from
   output$spatial_bias_map <- renderLeaflet({
-    #Full Data -> spatial_bias_data() -- red
-    #Sample Data -> bias_data() -- black
+    #Comparison Data -> spatial_bias_data() -- black
+    #Sample Data -> bias_data() -- red
     selected_data <- bias_data()
-    leaflet(spatial_bias_data()) %>%
+    comp_data <- calc(spatial_bias_data(), function(x) ifelse(x==0, NA, x))
+    pal <- colorNumeric(palette = c("#000000", "#000FFF", "#FFFFFF"), 
+                        domain = 0:100, na.color = "transparent", alpha = FALSE, reverse = FALSE)
+    leaflet(comp_data) %>%
       addProviderTiles(providers$Esri.NatGeoWorldMap) %>% 
       
-      addCircleMarkers(lng = ~ decimalLongitude, lat = ~ decimalLatitude,
-                       radius = 3,
-                       color = 'black',
-                       stroke = FALSE, fillOpacity = 0.5
-      ) %>%
+      addRasterImage(comp_data, colors = pal, opacity = 0.5) %>%
+      
       addCircleMarkers(data = selected_data, lng = ~ decimalLongitude, lat = ~ decimalLatitude,
                        radius = 3,
                        color = "red",
