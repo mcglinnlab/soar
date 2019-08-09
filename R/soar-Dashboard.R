@@ -238,16 +238,12 @@ ui <- dashboardPage(
                      ),
                      actionButton("spatial_do", "Use this dataset for spatial coverage comparison"), h4(),
                      withSpinner(leafletOutput("spatial_bias_map")) ),
-                  h5("The plot below shows the correlation between the percent of total observations
-                     per map pixel for the selected dataset and the percent of total observations per
-                     map pixel for the comparison dataset selected above. Take this into consideration when 
-                     comparing how many occurrences are reported in one area rather than another.",
-                     withSpinner(plotOutput("spatial_bias_plot"))), 
                   h5("The plot below shows a comparison betweeen the density of the species of interest and
                      the density of the comparison dataset selected above. Points in the lower right of the graph, where
                      there is much sampling for the comparison set but less for the species of interest, are likely true
-                     zeroes. Points in the lower left, however, may be undersampled. ",
-                     withSpinner(plotOutput("spatial_coverage_plot")))
+                     zeroes. Points in the lower left, however, may be undersampled. Take this into consideration when 
+                     comparing how many occurrences are reported in one area rather than another.",
+                     withSpinner(plotOutput("spatial_bias_plot")))
                ),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
@@ -716,18 +712,16 @@ server <- function(input, output) {
   
   output$spatial_bias_plot <- renderPlot({
     interest <- spatial_bias_raster("selected_sp")
-    Total <- spatial_bias_raster("all_sp")
-    plot(Total,interest, pch=1, cex=1,
-         xlab = "Percent of Comparison Dataset Occurrences Per Cell",
-        ylab = "Percent of Species of Interest occurrences per cell")
+    Comparison <- spatial_bias_raster("all_sp")
+    plot(Comparison,interest, pch=1, cex=1,
+         xlab = "Density of Comparison Dataset Occurrences",
+        ylab = "Density Of Species of Interest Occurrences", ylim = c(0,1), xlim = c(0,1), maxpixels = 262144)
     dat <- getValues(interest)
-    fullDat <- getValues(Total)
+    fullDat <- getValues(Comparison)
     corr = cor(fullDat,dat, use = "complete.obs")
     legend("topleft", paste("r = ", corr),bty = "n")
     abline(a=0,b=1)
   })
-  
-  output$spatial_coverage_plot <- renderPlot({})
   
   #Create a rasta file that can be used in a comparison graph for how many 
   #results are in a cell per gbif vs. how many results are in a cell for 
@@ -738,47 +732,27 @@ server <- function(input, output) {
     # 2 = Full dataset
     if (input == "selected_sp"){
       dat = bias_data();
-      crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
-      crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
-      r = raster(nrows=116, ncols=364, xmn=-20037.51, xmx=20002.49, ymn=-6396.115,
-                 ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
-      crds_cea = spTransform(crds_sp, CRSobj = CRS(proj4string(r)))
-      ct = rasterize(crds_cea, r, fun='count')
+      crds = data.frame(long = dat$decimalLongitude, lat = dat$decimalLatitude)
+      crds = subset(crds, subset= lat > -85.06)
+      crds = subset(crds, subset = lat < 85.06)
+      crds_3857 <- rgdal::project(as.matrix(crds), "+init=epsg:3857 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs")
+      
+      
+      r = raster(nrows=512, ncols=512, xmn=-20037508, xmx=20037508, ymn=-20037508,
+                 ymx=20037508, crs = CRS("+init=epsg:3857 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs"))
+      ct = rasterize(crds_3857, r, fun='count')
       #comment out this line later
-      return(ct)
+      #return(ct)
       
       #this will turn the full numbers in to percentages of the max to match the values
       #from the map_fetch() functions ( values on a scale of 0 to 1)
-      #max <- 0
-      #for (i in 1:42224){
-      #  if (!is.na(ct@data@values[i])){
-      #    if (ct@data@values[i] > max){
-      #      max <- ct@data@values[i]
-      #    }
-      #  }
-      #}
-      #
-      #
-      #for (i in 1:42224){
-      #  if (is.na(ct@data@values[i])){
-      #    ct@data@values[i] = 0
-      #  }
-      #  if (!is.na(ct@data@values[i])){
-      #    ct@data@values[i] = (ct@data@values[i] / max)
-      #  }
-      #}
-      #return(ct)
+      prop = calc(ct, function(x) ifelse(is.na(x), 0, x / max_ct))
+      return(prop)
       
     }
     else {
       dat = spatial_bias_data();
-      crds = cbind(dat$decimalLongitude, dat$decimalLatitude)
-      crds_sp = SpatialPoints(crds, proj4string = CRS("+proj=longlat +ellps=WGS84"))
-      r = raster(nrows=116, ncols=364, xmn=-20037.51, xmx=20002.49, ymn=-6396.115,
-                 ymx=6363.885, crs = CRS("+proj=cea +units=km +ellps=WGS84"))
-      crds_cea = spTransform(crds_sp, CRSobj = CRS(proj4string(r)))
-      ct = rasterize(crds_cea, r, fun='count')
-      return(ct)
+      return(dat)
     }
   }
   
