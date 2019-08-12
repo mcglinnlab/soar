@@ -215,7 +215,8 @@ ui <- dashboardPage(
                   h6(textOutput("pre1970"),"% of the dataset was collected before 1970"),
                   h6(textOutput("pre1990"),"% of the dataset was collected before 1990")),
                   h5(), #For a new line
-                  h5("Temporal Coverage Estimate:", "(Large negative numbers indicate low temporal coverage)"),
+                  h5("Temporal Coverage Estimate:", textOutput("formal_temp_estimate"), 
+                     "(Large negative numbers indicate low temporal coverage)"),
                   h5(), #For a new line
                   h5("The plot below shows the number of observtions in the current dataset per year. Take this into consideration when comparing
                      the number of observations from one year to another.", withSpinner(plotOutput("temporal_bias_plot"))),
@@ -590,6 +591,118 @@ server <- function(input, output) {
     (pre1950/(length(year)))*100
     }
   }
+  
+  #pass back formal temporal coverage estimate
+  output$formal_temp_estimate <- renderText(calc_formal_temp_estimate())
+  
+  #This counts the leftover months after the full years have been counted for calc_formal_temp_estimate
+  monthCount <- function(start_month, end_month){
+    result = 0
+    cont = TRUE
+    while(cont){
+      if (start_month == 12){
+        cont = FALSE
+        result = result + 1
+      }
+      else {
+        result = result + 1
+        start_month = start_month + 1
+      }
+    }
+    cont = TRUE
+    while(cont){
+      if (end_month == 1){
+        cont = FALSE
+        result = result + 1
+      }
+      else {
+        result = result + 1
+        end_month = end_month - 1
+      }
+    }
+    return(result/12)
+  }
+  
+  #calculate formal temporal coverage estimate
+  calc_formal_temp_estimate <- function(){
+    #Only pull out the needed fields, ie. month and year
+    #Get specifics from dat using dat[row, col]
+    #Col: 1 = month, 2 = year
+    dat <- gbif_data()
+    dat <- dat[c("month","year")]
+    
+    #order the fields by date
+    dat <- data.frame(dat)
+    dat <- dat[order(dat[2], dat[1]),]
+    
+    #This will be pulled from the input field of the app, default will be 1/1750 (or the earliest date in the thing)
+    date = list()
+    date[1] = 1
+    date[2] = 1750
+    #if the user specified one, this will grab that
+    if (input$date_checkbox){
+      date[1] <- substr(input$from_date, 6,7)
+      date[2] <- substr(input$from_date, 1, 4)
+    }
+    #if the user didn't specify one, this will grab the earliest date in the set(provided it is before 1750)
+    if (dat[1,2] < date[[2]]) {
+      date[2] = dat[1,2]
+    }
+    
+    
+    #This will be pulled from the last occurrence data point
+    end_date = list()
+    end_date[1] = dat[(length(dat[,1])),1]
+    end_date[2] = dat[(length(dat[,1])),2]
+    
+    #For the results
+    results = 0
+    
+    #For looping through the results and the data
+    dat_i = 1 # for keeping track of where you are in the data
+    res_i = 1 # for keeping track of results
+    
+    
+    continue = TRUE
+    while (continue){
+      if(date[[2]] == dat[dat_i,2] && date[[1]] <= dat[dat_i,1]){ # If the year and the month match the data
+        # put the answer in the right place
+        results[res_i] = (dat[dat_i,1] - date[[1]])/12
+        res_i = res_i + 1 #increment answer
+        date[1] = date[[1]] + 1 #increment date
+        #make sure date is valid
+        if(date[[1]] == 13) { 
+          date[1] = 1
+          date[2] = date[[2]] + 1
+        }
+        #check to see if the end date has been reached
+        if(date[[2]] == end_date[[2]] && date[[1]] > end_date[[1]] ){
+          continue = FALSE
+        }
+      }else if (date[[2]] == dat[dat_i,2] && date[[1]] > dat[dat_i,1]){ #right year, wrong month
+        dat_i = dat_i + 1
+      }else if (date[[2]] <= dat[dat_i,2]){#The year is less than the next thing on the list so year and months are coutned
+        # put the answer in the right place
+        results[res_i] = dat[dat_i,2] - date[[2]] - 1 #puts the right number of years
+        results[res_i] = results[res_i] + monthCount(date[[1]], dat[dat_i,1]) #adds on the months
+        res_i = res_i + 1 #increment answer
+        date[1] = date[[1]] + 1 #increment date
+        #make sure date is valid
+        if(date[[1]] == 13) { 
+          date[1] = 1
+          date[2] = date[[2]] + 1
+        }
+        #check to see if the end date has been reached
+        if(date[[2]] == end_date[[2]] && date[[1]] > end_date[[1]] ){
+          continue = FALSE
+        }
+      }else{dat_i = dat_i + 1} #data was collected before currently searched date
+    }
+    
+    val = mean(results)
+    val = val*-1
+    return(val)
+  }
  
   #actually pass back the data
   output$pre1950 <- renderText(
@@ -746,6 +859,7 @@ server <- function(input, output) {
       
       #this will turn the full numbers in to percentages of the max to match the values
       #from the map_fetch() functions ( values on a scale of 0 to 1)
+      max_ct = maxValue(ct)
       prop = calc(ct, function(x) ifelse(is.na(x), 0, x / max_ct))
       return(prop)
       
