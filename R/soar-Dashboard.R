@@ -628,7 +628,7 @@ server <- function(input, output) {
     #Only pull out the needed fields, ie. month and year
     #Get specifics from dat using dat[row, col]
     #Col: 1 = month, 2 = year
-    dat <- gbif_data()
+    dat <- bias_data()
     dat <- dat[c("month","year")]
     
     #order the fields by date
@@ -676,11 +676,15 @@ server <- function(input, output) {
           date[2] = date[[2]] + 1
         }
         #check to see if the end date has been reached
-        if(date[[2]] == end_date[[2]] && date[[1]] > end_date[[1]] ){
+        if(date[[2]] == end_date[[2]] && (date[[1]] > end_date[[1]] || (end_date[[1]] == 12 && date[[1]] == 1))){
           continue = FALSE
         }
       }else if (date[[2]] == dat[dat_i,2] && date[[1]] > dat[dat_i,1]){ #right year, wrong month
         dat_i = dat_i + 1
+        #make sure there's something there
+        if (is.na(dat[dat_i,2])) {
+          continue = FALSE
+        }
       }else if (date[[2]] <= dat[dat_i,2]){#The year is less than the next thing on the list so year and months are coutned
         # put the answer in the right place
         results[res_i] = dat[dat_i,2] - date[[2]] - 1 #puts the right number of years
@@ -693,7 +697,7 @@ server <- function(input, output) {
           date[2] = date[[2]] + 1
         }
         #check to see if the end date has been reached
-        if(date[[2]] == end_date[[2]] && date[[1]] > end_date[[1]] ){
+        if(date[[2]] == end_date[[2]] && (date[[1]] > end_date[[1]] || (end_date[[1]] == 12 && date[[1]] == 1))){
           continue = FALSE
         }
       }else{dat_i = dat_i + 1} #data was collected before currently searched date
