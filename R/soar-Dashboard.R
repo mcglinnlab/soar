@@ -225,10 +225,7 @@ ui <- dashboardPage(
                      Take this into account when considering the habits of the organism versus the patterns shown in the data",
                      withSpinner(plotOutput("temporal_bias_month_plot"))),
                h4("Spatial Coverage"),
-                  h5("The map below shows the occurrences in the selected dataset (red) overlaid with the dataset 
-                      specified in the boxes above the map(grey). Take this into consideration when 
-                     comparing how many occurrences are reported in one area rather than another.",
-                     radioButtons("spat_bias_comp_data", label = "Spatial Bias Comparison Dataset",
+                  h5(radioButtons("spat_bias_comp_data", label = "Spatial Bias Comparison Dataset",
                                   choices = list("Full GBIF Database" = 1, "Specific Dataset" = 2), 
                                   selected = 2),
                      conditionalPanel( condition = "input.spat_bias_comp_data == 2",
@@ -238,13 +235,17 @@ ui <- dashboardPage(
                                                 "Class" = "Class", "Phylum" = "Phylum", "Kingdom" = "Kingdom"), selected = "Species")
                      ),
                      actionButton("spatial_do", "Use this dataset for spatial coverage comparison"), h4(),
+                     "The map below shows the occurrences in the selected dataset (red) overlaid with the dataset 
+                      specified in the boxes above the map(grey). Take this into consideration when 
+                     comparing how many occurrences are reported in one area rather than another.",
                      withSpinner(leafletOutput("spatial_bias_map")) ),
-                  h5("The plot below shows a comparison betweeen the density of the species of interest and
-                     the density of the comparison dataset selected above. Points in the lower right of the graph, where
+                  h5("The plot below shows a comparison between the density of the species of interest and the density of the comparison
+                     dataset selected above. The red line indicates the slope of the two datasets and the blue line has a slope of 1.
+                      Points in the lower right of the graph, where
                      there is much sampling for the comparison set but less for the species of interest, are likely true
                      zeroes. Points in the lower left, however, may be undersampled. Take this into consideration when 
-                     comparing how many occurrences are reported in one area rather than another.",
-                     withSpinner(plotOutput("spatial_bias_plot")))
+                     comparing how many occurrences are reported in one area rather than another. The data has been coursened in order to increase accuracy.",
+                     withSpinner(plotOutput("spatial_bias_plot")), withSpinner(plotOutput("spatial_bias_comparison_block")))
                ),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
@@ -318,7 +319,7 @@ server <- function(input, output) {
     
     if (input$input_file_checkbox) {
       #Works, but says file does not exist
-      file = substring(data_file_name,1,23)
+      file = substring(data_file_name,1,(nchar(data_file_name)-4))
       data_ID <<- "A key cannot be determined from an uploaded file" #update the citation info
       dat <- occ_download_import(key = file)
       data_meta <<- FALSE
@@ -728,11 +729,19 @@ server <- function(input, output) {
       rank <- input$bias_rank
       sp_key <- name_suggest(q =latin_name, rank = rank)$key[1]
       #This line is supposed to retrieve the actual data, 
-      spec_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857")
-      spec_data_raster <- setExtent(spec_data_raster, extent(-20037508, 20037508, -20037508, 20037508))
-      #fullDat <- occ_download_import(key = "0019660-190415153152247") #so the code doesn't crash
-      #return(fullDat) # should return spec_data_raster eventually
-      return(spec_data_raster)
+      spec_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857", format = ".mvt")
+      x_pts = unlist(spec_data_raster$occurrence$geometry)
+      x_pts = matrix(x_pts, nrow=length(x_pts)/2, byrow = T)
+      
+      x_sp = SpatialPointsDataFrame(coords = x_pts, data = data.frame(total = spec_data_raster$occurrence$total))
+      
+      y <- raster(ncol=512, nrow=512)
+      
+      r <- rasterize(x_sp, y, field = 'total', fun='sum') 
+      r8 <- aggregate(r, fact = 8, sum)
+      r8 = calc(r8, function(x) ifelse(is.na(x), 0, x))
+      # should return spec_data_raster eventually
+      return(r8)
     }
     else {
       #Full_Data_Raster <- map_fetch(srs = "EPSG:3857")
@@ -830,14 +839,21 @@ server <- function(input, output) {
   output$spatial_bias_plot <- renderPlot({
     interest <- spatial_bias_raster("selected_sp")
     Comparison <- spatial_bias_raster("all_sp")
-    plot(Comparison,interest, pch=1, cex=1,
-         xlab = "Density of Comparison Dataset Occurrences",
-        ylab = "Density Of Species of Interest Occurrences", ylim = c(0,1), xlim = c(0,1), maxpixels = 262144)
+    plot(Comparison, interest, 
+         xlab = "Density of Refrence Points (Comparison dataset)",
+         ylab = "Density of Species of Interest", maxpixels = 262144)
     dat <- getValues(interest)
     fullDat <- getValues(Comparison)
-    corr = cor(fullDat,dat, use = "complete.obs")
-    legend("topleft", paste("r = ", corr),bty = "n")
-    abline(a=0,b=1)
+    abline(lm(dat ~ fullDat), col = "red") # slope of the two
+    #actual 1:1 line
+    abline(0,1, col = "blue") #1:1
+  })
+  
+  output$spatial_bias_comparison_block <- renderPlot({
+    interest <- spatial_bias_raster("selected_sp")
+    comparison <- spatial_bias_raster("all_sp")
+    brick = stack(interest, comparison)
+    plot(brick, xlab ="Longitude", ylab = "Latitude")
   })
   
   #Create a rasta file that can be used in a comparison graph for how many 
@@ -849,22 +865,19 @@ server <- function(input, output) {
     # 2 = Full dataset
     if (input == "selected_sp"){
       dat = bias_data();
-      crds = data.frame(long = dat$decimalLongitude, lat = dat$decimalLatitude)
+      crds = data.frame(long = dat$decimalLongitude, lat = dat$decimalLatitude, iss = dat$hasGeospatialIssues)
       crds = subset(crds, subset= lat > -85.06)
       crds = subset(crds, subset = lat < 85.06)
-      crds_3857 <- rgdal::project(as.matrix(crds), "+init=epsg:3857 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs")
+      crds = subset(crds, subset = iss == FALSE)
+      crds = data.frame(long = crds$long, lat = crds$lat)
       
-      
-      r = raster(nrows=512, ncols=512, xmn=-20037508, xmx=20037508, ymn=-20037508,
-                 ymx=20037508, crs = CRS("+init=epsg:3857 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs"))
-      ct = rasterize(crds_3857, r, fun='count')
+      r = raster(ncol=512, nrow=512)
+      r8 = raster::aggregate(y, fact = 8, sum)
+      ct = raster::rasterize(x = crds, y = r8, fun='count')
       #comment out this line later
       #return(ct)
       
-      #this will turn the full numbers in to percentages of the max to match the values
-      #from the map_fetch() functions ( values on a scale of 0 to 1)
-      max_ct = maxValue(ct)
-      prop = calc(ct, function(x) ifelse(is.na(x), 0, x / max_ct))
+      prop = calc(ct, function(x) ifelse(is.na(x), 0, x))
       return(prop)
       
     }
