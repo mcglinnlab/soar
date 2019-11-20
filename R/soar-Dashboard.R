@@ -872,7 +872,7 @@ server <- function(input, output) {
       crds = data.frame(long = crds$long, lat = crds$lat)
       
       r = raster(ncol=512, nrow=512)
-      r8 = raster::aggregate(y, fact = 8, sum)
+      r8 = raster::aggregate(r, fact = 8, sum)
       ct = raster::rasterize(x = crds, y = r8, fun='count')
       #comment out this line later
       #return(ct)
