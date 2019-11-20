@@ -769,7 +769,8 @@ server <- function(input, output) {
       for (i in 1:length(month_dat)) {
         month[month_dat[i]] = month[month_dat[i]] + 1
       }
-      plot <- barplot(month, main = "Proportion of occurrences per month", xlab = "Month")
+      names(month) = c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+      plot <- barplot(month, main = "Occurrences per month", xlab = "Month", ylab = "Occurrences")
       return(plot)
     }
     dat <- bias_data()$year
