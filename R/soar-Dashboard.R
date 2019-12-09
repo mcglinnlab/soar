@@ -139,17 +139,27 @@ ui <- dashboardPage(
                conditionalPanel(condition = "input.table_cols == 1", 
                                 checkboxGroupInput("table_min", label = h4("Minimal Options:"), choices =
                                                    choice(1), 
-                                                   selected = c(133, 134, 175, 220, 229))),
+                                                   selected = c(choice(1)$decimalLatitude, choice(1)$decimalLongitude, choice(1)$taxonID, choice(1)$taxonKey, choice(1)$species))),
                conditionalPanel(condition = "input.table_cols == 2",
                                 checkboxGroupInput("table_def", label= h4("Default Options:"), choices = choice(2),
-                                                   selected = c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230))
+                                                   selected = c(choice(2)$references ,choice(2)$rights,choice(2)$rightsHolder,choice(2)$institutionCode,choice(2)$informationWithheld,
+                                                                choice(2)$catalogNumber,choice(2)$sex,choice(2)$lifeStage,choice(2)$verbatimEventDate,choice(2)$countryCode,
+                                                                choice(2)$decimalLatitude,choice(2)$decimalLongitude,choice(2)$coordinateUncertaintyInMeters,choice(2)$taxonID,
+                                                                choice(2)$scientificName,choice(2)$kingdom,choice(2)$phylum, choice(2)$class, choice(2)$order, choice(2)$family, 
+                                                                choice(2)$genus, choice(2)$subgenus, choice(2)$specificEpithet, choice(2)$infraspecificEpithet,
+                                                                choice(2)$taxonRank,choice(2)$datasetKey,choice(2)$hasGeospatialIssues,choice(2)$species,choice(2)$genericName))
                                 ),
                conditionalPanel(condition = "input.table_cols == 3",
                                 h4("Table will contain all columns.")),
                conditionalPanel(condition = "input.table_cols == 4",
                                 #checkboxes with 235 options
                                 checkboxGroupInput("table_cus", label= h4("Select Options (Defaults Options Selected):"), choices = choice(3),
-                              selected = c(43,47,48,60,65,69,75,76,106,121,133:135,175,183,191:200,207,219,229,230))
+                              selected = c(choice(3)$references ,choice(3)$rights,choice(3)$rightsHolder,choice(3)$institutionCode,choice(3)$informationWithheld,
+                                           choice(3)$catalogNumber,choice(3)$sex,choice(3)$lifeStage,choice(3)$verbatimEventDate,choice(3)$countryCode,
+                                           choice(3)$decimalLatitude,choice(3)$decimalLongitude,choice(3)$coordinateUncertaintyInMeters,choice(3)$taxonID,
+                                           choice(3)$scientificName,choice(3)$kingdom,choice(3)$phylum, choice(3)$class, choice(3)$order, choice(3)$family, 
+                                           choice(3)$genus, choice(3)$subgenus, choice(3)$specificEpithet, choice(3)$infraspecificEpithet,
+                                           choice(3)$taxonRank,choice(3)$datasetKey,choice(3)$hasGeospatialIssues,choice(3)$species,choice(3)$genericName))
                                 )
                ),
               
