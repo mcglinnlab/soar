@@ -239,13 +239,16 @@ ui <- dashboardPage(
                       specified in the boxes above the map(grey). Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another.",
                      withSpinner(leafletOutput("spatial_bias_map")) ),
-                  h5("The plot below shows a comparison between the density of the species of interest and the density of the comparison
+                  h5("The plot below shows a comparison between the density of the dataset of interest and the density of the comparison
                      dataset selected above. The red line indicates the slope of the two datasets and the blue line has a slope of 1.
                       Points in the lower right of the graph, where
                      there is much sampling for the comparison set but less for the species of interest, are likely true
                      zeroes. Points in the lower left, however, may be undersampled. Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another. The data has been coursened in order to increase accuracy.",
-                     withSpinner(plotOutput("spatial_bias_plot")), withSpinner(plotOutput("spatial_bias_comparison_block")))
+                     withSpinner(plotOutput("spatial_bias_plot"))),
+                     h5("The plot below is another comparison of the density of the datasets. On the left is the density of the 
+                        dataset of interest and on the right is the comparison dataset."
+                     ,withSpinner(plotOutput("spatial_bias_comparison_block")))
                ),
       tabPanel("Download Cleaned Data", 
                h4("'True' means the data passed the tests indicated, 'False' means it failed"),
@@ -624,7 +627,7 @@ server <- function(input, output) {
     return(result/12)
   }
   
-  #calculate formal temporal coverage estimate
+  #calculate formal temporal occ estimate
   calc_formal_temp_estimate <- function(){
     #Only pull out the needed fields, ie. month and year
     #Get specifics from dat using dat[row, col]
@@ -747,9 +750,9 @@ server <- function(input, output) {
       #Full_Data_Raster <- map_fetch(srs = "EPSG:3857")
       #writeRaster(x = Full_Data_Raster, filename = "full_GBIF_mapfetch.grd", format = "raster")
       full_data_raster <- raster("full_GBIF_mapfetch.grd")
+      #full_data_raster <- setExtent(full_data_raster, extent(-180, 180, -90, 90))
       full_data_raster <- setExtent(full_data_raster, extent(-20037508, 20037508, -20037508, 20037508))
-      #fullDat <- occ_download_import(key = "0019660-190415153152247") #so the code doesn't crash
-      #return(fullDat) #should be changed  to full_data_raster eventually
+      full_data_raster <- aggregate(full_data_raster, fact = 8, sum)
       return(full_data_raster)
     }
   })
@@ -840,6 +843,7 @@ server <- function(input, output) {
   output$spatial_bias_plot <- renderPlot({
     interest <- spatial_bias_raster("selected_sp")
     Comparison <- spatial_bias_raster("all_sp")
+    Comparison <- setExtent(Comparison, extent(-180, 180, -90, 90))
     plot(Comparison, interest, 
          xlab = "Density of Refrence Points (Comparison dataset)",
          ylab = "Density of Species of Interest", maxpixels = 262144)
@@ -851,8 +855,10 @@ server <- function(input, output) {
   })
   
   output$spatial_bias_comparison_block <- renderPlot({
-    interest <- spatial_bias_raster("selected_sp")
     comparison <- spatial_bias_raster("all_sp")
+    #comparison <- setExtent(comparison, extent(-180, 180, -90, 90))
+    #comparison <- projectExtent(comparison, "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+    interest <- spatial_bias_raster("selected_sp")
     brick = stack(interest, comparison)
     plot(brick, xlab ="Longitude", ylab = "Latitude")
   })
