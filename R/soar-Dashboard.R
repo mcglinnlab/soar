@@ -850,6 +850,44 @@ server <- function(input, output) {
                        fillOpacity = 0.5)
   })
   
+  spatial_bias_block_data <- eventReactive(input$spatial_do,{
+    if (input$spat_bias_comp_data == 2){
+      latin_name <- input$bias_name
+      rank <- input$bias_rank
+      sp_key <- name_suggest(q =latin_name, rank = rank)$key[1]
+      #This line is supposed to retrieve the actual data, 
+      spec_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857", format = ".mvt")
+      x_pts = unlist(spec_data_raster$occurrence$geometry)
+      x_pts = matrix(x_pts, nrow=length(x_pts)/2, byrow = T)
+      
+      x_sp = SpatialPointsDataFrame(coords = x_pts, data = data.frame(total = spec_data_raster$occurrence$total))
+      
+      y <- raster(ncol=512, nrow=512)
+      
+      r <- rasterize(x_sp, y, field = 'total', fun='sum') 
+      r8 <- aggregate(r, fact = 8, sum)
+      r8 = calc(r8, function(x) ifelse(is.na(x), 0, x))
+      # should return spec_data_raster eventually
+      return(r8)
+    }
+    else {
+      #Full_Data_Raster <- map_fetch(srs = "EPSG:3857")
+      Full_Data_Raster <- map_fetch(srs = "EPSG:3857", format = ".mvt")
+      #writeRaster(x = Full_Data_Raster, filename = "full_GBIF_mapfetch.grd", format = "raster")
+      x_pts = unlist(Full_Data_Raster$occurrence$geometry)
+      x_pts = matrix(x_pts, nrow=length(x_pts)/2, byrow = T)
+      
+      x_sp = SpatialPointsDataFrame(coords = x_pts, data = data.frame(total = Full_Data_Raster$occurrence$total))
+      
+      y <- raster(ncol=512, nrow=512)
+      
+      r <- rasterize(x_sp, y, field = 'total', fun='sum') 
+      r8 <- aggregate(r, fact = 8, sum)
+      r8 = calc(r8, function(x) ifelse(is.na(x), 0, x))
+      return(r8)
+    }
+  })
+  
   output$spatial_bias_plot <- renderPlot({
     interest <- spatial_bias_raster("selected_sp")
     Comparison <- spatial_bias_raster("all_sp")
@@ -865,9 +903,7 @@ server <- function(input, output) {
   })
   
   output$spatial_bias_comparison_block <- renderPlot({
-    comparison <- spatial_bias_raster("all_sp")
-    #comparison <- setExtent(comparison, extent(-180, 180, -90, 90))
-    #comparison <- projectExtent(comparison, "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+    comparison <- spatial_bias_block_data()
     interest <- spatial_bias_raster("selected_sp")
     brick = stack(interest, comparison)
     plot(brick, xlab ="Longitude", ylab = "Latitude")
