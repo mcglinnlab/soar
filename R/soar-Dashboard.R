@@ -336,6 +336,7 @@ server <- function(input, output) {
       data_ID <<- "A key cannot be determined from an uploaded file" #update the citation info
       dat <- occ_download_import(key = file)
       data_meta <<- FALSE
+      if (length(dat) != 235){ stop("Invalid Dataset")}
       return(dat)
     }
     else if (input$down_key_checkbox){
@@ -344,6 +345,7 @@ server <- function(input, output) {
       dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE)# %>% occ_download_import()
       data_meta <<- dat
       dat <- occ_download_import(dat)
+      if (length(dat) != 235){ stop("Invalid Dataset")}
       return(dat)
     }
     else{
@@ -377,6 +379,7 @@ server <- function(input, output) {
         continue = FALSE
         dat <- occ_download_get(res[1], overwrite = TRUE) %>%
           occ_download_import()
+        if (length(dat) != 235){ stop("Invalid Dataset")}
         return(dat)
        }     
       if (meta$status == "KILLED"){
