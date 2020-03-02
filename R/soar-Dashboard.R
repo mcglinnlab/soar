@@ -256,7 +256,7 @@ ui <- dashboardPage(
                      zeroes. Points in the lower left, however, may be undersampled. Take this into consideration when 
                      comparing how many occurrences are reported in one area rather than another. The data has been coursened in order to increase accuracy.",
                      withSpinner(plotOutput("spatial_bias_plot"))),
-                     h5("The plot below is another comparison of the density of the datasets. On the left is the density of the 
+                     h5("The plot below is another comparison of the density of the datasets(log10). On the left is the density of the 
                         dataset of interest and on the right is the comparison dataset."
                      ,withSpinner(plotOutput("spatial_bias_comparison_block")))
                ),
@@ -336,7 +336,7 @@ server <- function(input, output) {
       data_ID <<- "A key cannot be determined from an uploaded file" #update the citation info
       dat <- occ_download_import(key = file)
       data_meta <<- FALSE
-      if (length(dat) != 235){ stop("Invalid Dataset")}
+      if (length(dat) < 235){ stop("Invalid Dataset")}
       return(dat)
     }
     else if (input$down_key_checkbox){
@@ -345,7 +345,7 @@ server <- function(input, output) {
       dat <- occ_download_get(key = toString(input$down_key), overwrite = TRUE)# %>% occ_download_import()
       data_meta <<- dat
       dat <- occ_download_import(dat)
-      if (length(dat) != 235){ stop("Invalid Dataset")}
+      if (length(dat) < 235){ stop("Invalid Dataset")}
       return(dat)
     }
     else{
@@ -379,9 +379,9 @@ server <- function(input, output) {
         continue = FALSE
         dat <- occ_download_get(res[1], overwrite = TRUE) %>%
           occ_download_import()
-        if (length(dat) != 235){ stop("Invalid Dataset")}
+        if (length(dat) < 235){ stop("Invalid Dataset")}
         return(dat)
-       }     
+       }    
       if (meta$status == "KILLED"){
         continue = FALSE
         #Returns: ERROR:Bad Request(HTTP 400)
@@ -908,8 +908,11 @@ server <- function(input, output) {
   output$spatial_bias_comparison_block <- renderPlot({
     comparison <- spatial_bias_block_data()
     interest <- spatial_bias_raster("selected_sp")
-    brick = stack(interest, comparison)
-    plot(brick, xlab ="Longitude", ylab = "Latitude")
+    par(mfrow=c(1,2))
+    plot(log10(interest), main = "Dataset of Interest", xlab = "Longitude", ylab = "Latitude", col= colorRampPalette(c("white","red", "blue"))(13))
+    plot(map, add=T)
+    plot(log10(comparison), main = "Dataset for Comparison", xlab = "Longitude", ylab = "Latitude", col= colorRampPalette(c("white","red", "blue"))(13))
+    plot(map, add=T)
   })
   
   #Create a rasta file that can be used in a comparison graph for how many 
