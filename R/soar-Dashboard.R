@@ -12,6 +12,9 @@ library(raster)  #for working with rasters
 library(shinycssloaders)  #This makes the loading symbols
 library(CoordinateCleaner)  #Cleans the Data
 library(rnaturalearth)  #Maps for leaflet
+library(rnaturalearthdata) #For cleaning data
+library(protolite) #for mvt_fetch()
+library(maps) #for final spatial bias comparison
 #library(mapview) #for downloading leaflet map
 
 choice <- function(input_num) {
@@ -291,7 +294,7 @@ server <- function(input, output) {
     }
     else { #to make sure this doesn't run when a file is uploaded (to work w/o internet)
     #filter by name
-    sp_key <- name_suggest(q =input$species_name, rank = input$rank)$key[1]
+    sp_key <- name_suggest(q =input$species_name, rank = input$rank)$data$key[1]
     }
     #filter by country
     if (input$political_checkbox){ country <- input$political_boundary}
@@ -351,20 +354,20 @@ server <- function(input, output) {
     else{
       continue = TRUE
       if (input$political_checkbox){
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), paste("country =", country), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+        res = occ_download(pred_gte("decimalLatitude", low_lat), pred_lte("decimalLatitude", high_lat),
+                           pred_gte("decimalLongitude", low_long), pred_lte("decimalLongitude", high_long),
+                           pred_gte("year", from_y), pred_lte("year", to_y), pred_gte("month", from_m),
+                           pred_lte("month", to_m), pred("country", country), 
+                           pred("taxonKey", sp_key), pred("hasCoordinate", TRUE),
                            user = input$gbif_username, pwd = input$gbif_pass, 
                            email = input$gbif_email)
       }
       else{
-        res = occ_download(paste("decimalLatitude >=", low_lat), paste("decimalLatitude <=", high_lat),
-                           paste("decimalLongitude >=", low_long), paste("decimalLongitude <=", high_long),
-                           paste("year >=", from_y), paste("year <=", to_y), paste("month >=", from_m),
-                           paste("month <=", to_m), 
-                           paste("taxonKey =", sp_key), 'hasCoordinate = TRUE',
+        res = occ_download(pred_gte("decimalLatitude", low_lat), pred_lte("decimalLatitude", high_lat),
+                           pred_gte("decimalLongitude", low_long), pred_lte("decimalLongitude", high_long),
+                           pred_gte("year", from_y), pred_lte("year", to_y), pred_gte("month", from_m),
+                           pred_lte("month", to_m), 
+                           pred("taxonKey", sp_key), pred("hasCoordinate", TRUE),
                            user = input$gbif_username, pwd = input$gbif_pass, 
                            email = input$gbif_email)
       }
@@ -397,9 +400,9 @@ server <- function(input, output) {
   output$raw_data <- DT::renderDataTable(expr = download_info(),options=list(autoWidth = TRUE,scrollX=TRUE))
   
 #Display Cleaned Dataset based on criteria  
-  output$clean_data <- DT::renderDataTable(expr = clean_info(),options=list(autoWidth = TRUE,scrollX=TRUE))
+  output$clean_data <- DT::renderDataTable(expr = clean_bias_data,options=list(autoWidth = TRUE,scrollX=TRUE))
   
-  #Clean Data based on input
+  #Clean Data based on input -- Is this needed or does output from the observe event enough for rendering the table?
   clean_info <- eventReactive(input$do_clean, {
     tryCatch({
     #call Coordinate Cleaner
@@ -745,11 +748,11 @@ server <- function(input, output) {
       rank <- input$bias_rank
       sp_key <- name_suggest(q =latin_name, rank = rank)$key[1]
       #This line is supposed to retrieve the actual data, 
-      spec_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857", format = ".mvt")
-      x_pts = unlist(spec_data_raster$occurrence$geometry)
+      spec_data_raster <- mvt_fetch(taxonKey = sp_key, srs = "EPSG:3857")
+      x_pts = unlist(spec_data_raster$geometry)
       x_pts = matrix(x_pts, nrow=length(x_pts)/2, byrow = T)
       
-      x_sp = SpatialPointsDataFrame(coords = x_pts, data = data.frame(total = spec_data_raster$occurrence$total))
+      x_sp = SpatialPointsDataFrame(coords = x_pts, data = data.frame(total = spec_data_raster$total))
       
       y <- raster(ncol=512, nrow=512)
       
@@ -859,11 +862,11 @@ server <- function(input, output) {
       rank <- input$bias_rank
       sp_key <- name_suggest(q =latin_name, rank = rank)$key[1]
       #This line is supposed to retrieve the actual data, 
-      spec_data_raster <- map_fetch(taxonKey = sp_key, srs = "EPSG:3857", format = ".mvt")
-      x_pts = unlist(spec_data_raster$occurrence$geometry)
+      spec_data_raster <- mvt_fetch(taxonKey = sp_key, srs = "EPSG:3857")
+      x_pts = unlist(spec_data_raster$geometry)
       x_pts = matrix(x_pts, nrow=length(x_pts)/2, byrow = T)
       
-      x_sp = SpatialPointsDataFrame(coords = x_pts, data = data.frame(total = spec_data_raster$occurrence$total))
+      x_sp = SpatialPointsDataFrame(coords = x_pts, data = data.frame(total = spec_data_raster$total))
       
       y <- raster(ncol=512, nrow=512)
       
@@ -875,12 +878,12 @@ server <- function(input, output) {
     }
     else {
       #Full_Data_Raster <- map_fetch(srs = "EPSG:3857")
-      Full_Data_Raster <- map_fetch(srs = "EPSG:3857", format = ".mvt")
+      Full_Data_Raster <- mvt_fetch(srs = "EPSG:3857")
       #writeRaster(x = Full_Data_Raster, filename = "full_GBIF_mapfetch.grd", format = "raster")
-      x_pts = unlist(Full_Data_Raster$occurrence$geometry)
+      x_pts = unlist(Full_Data_Raster$geometry)
       x_pts = matrix(x_pts, nrow=length(x_pts)/2, byrow = T)
       
-      x_sp = SpatialPointsDataFrame(coords = x_pts, data = data.frame(total = Full_Data_Raster$occurrence$total))
+      x_sp = SpatialPointsDataFrame(coords = x_pts, data = data.frame(total = Full_Data_Raster$total))
       
       y <- raster(ncol=512, nrow=512)
       
@@ -910,9 +913,9 @@ server <- function(input, output) {
     interest <- spatial_bias_raster("selected_sp")
     par(mfrow=c(1,2))
     plot(log10(interest), main = "Dataset of Interest", xlab = "Longitude", ylab = "Latitude", col= colorRampPalette(c("white","red", "blue"))(13))
-    plot(map, add=T)
+    map("world", add = TRUE) #plot(map, add=T)
     plot(log10(comparison), main = "Dataset for Comparison", xlab = "Longitude", ylab = "Latitude", col= colorRampPalette(c("white","red", "blue"))(13))
-    plot(map, add=T)
+    map("world", add = TRUE) #plot(map, add=T)
   })
   
   #Create a rasta file that can be used in a comparison graph for how many 
@@ -1084,7 +1087,7 @@ server <- function(input, output) {
   output$download_clean_data <- downloadHandler(
     filename = function(){"CleanGbifDat.csv"},
     content = function(file){
-      write.csv(clean_info() ,file)
+      write.csv(clean_bias_data ,file)
     }
   )
   
