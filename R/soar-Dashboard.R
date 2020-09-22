@@ -73,7 +73,7 @@ ui <- dashboardPage(
     textInput("species_name", "Latin name", "Caretta caretta"),
     selectInput("rank", "Taxonomic rank", 
                 choices = list("Species" = "Species","Genus" = "Genus", "Family" = "Family","Order" = "Order", 
-                               "Class" = "Class", "Phylum" = "Phylum", "Kingdom" = "Kingdom"), selected = "Species"),
+                               "Class" = "Class"), selected = "Species"),
     
     #get login information
     textInput("gbif_username", "Gbif Username", "Ex: GbifUser1313"),
